@@ -7,9 +7,11 @@ import { sepolia } from "wagmi/chains";
 import { getDefaultConfig, RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
 
+const REOWN_PROJECT_ID = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID as string;
+
 const config = getDefaultConfig({
   appName: "d4-syn",
-  projectId: "YOUR_PROJECT_ID", // TODO: Move to env, currently placeholder for hackathon
+  projectId: REOWN_PROJECT_ID,
   chains: [sepolia],
   transports: {
     [sepolia.id]: http(),
