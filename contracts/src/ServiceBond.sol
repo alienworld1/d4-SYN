@@ -4,61 +4,45 @@ pragma solidity ^0.8.13;
 /**
  * @title ServiceBond
  * @notice A capital vault for ENS domains. Allows bonding ETH to an ENS node.
- * @dev Intended for Hackathon MVP on Sepolia. Only supports unwrapped .eth names.
+ * @dev Intended for use on Sepolia.
  */
 
-// Interface for the ENS Base Registrar (ERC721)
-interface IBaseRegistrar {
-    function ownerOf(uint256 tokenId) external view returns (address);
+interface ENS {
+    function owner(bytes32 node) external view returns (address);
 }
 
 contract ServiceBond {
     // -------------------------------------------------------------------------
-    // State & Constants
+    // Data Structures
     // -------------------------------------------------------------------------
 
-    // Use a reentrancy lock for withdraw
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
-    uint256 private _status;
+    struct BondInfo {
+        uint256 amount;            // Staked ETH (in wei)
+        uint256 creationTime;      // Timestamp of first deposit (for Lindy Effect score)
+        uint256 unbondRequestTime; // 0 = Active, >0 = Timestamp when exit started
+    }
 
-    // The Sepolia Base Registrar Address
-    // address public constant BASE_REGISTRAR = 0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85;
-    IBaseRegistrar public immutable registrar;
+    // -------------------------------------------------------------------------
+    // State Variables
+    // -------------------------------------------------------------------------
 
-    // namehash('eth')
-    bytes32 public constant ETH_NODE_HASH =
-        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+    // Mapping of ENS Node Hash -> Bond Info
+    mapping(bytes32 => BondInfo) public bonds;
 
-    // Mapping of ENS Node Hash -> Bonded Amount (in wei)
-    mapping(bytes32 => uint256) public bonds;
+    // The Sepolia ENS Registry Address (Hardcoded as per spec)
+    // 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e
+    ENS public constant ensRegistry = ENS(0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e);
+
+    // Unbonding period (Hardcoded to 30 seconds for Hackathon Demo)
+    uint256 public constant UNBONDING_PERIOD = 30 seconds;
 
     // -------------------------------------------------------------------------
     // Events
     // -------------------------------------------------------------------------
 
     event BondIncreased(bytes32 indexed node, uint256 amount, uint256 newTotal);
-    event BondWithdrawn(bytes32 indexed node, uint256 amount, uint256 newTotal);
-
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
-    constructor(address _registrar) {
-        registrar = IBaseRegistrar(_registrar);
-        _status = _NOT_ENTERED;
-    }
-
-    // -------------------------------------------------------------------------
-    // Modifiers
-    // -------------------------------------------------------------------------
-
-    modifier nonReentrant() {
-        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
-        _status = _ENTERED;
-        _;
-        _status = _NOT_ENTERED;
-    }
+    event ExitInitiated(bytes32 indexed node, uint256 timestamp);
+    event BondWithdrawn(bytes32 indexed node, uint256 amount);
 
     // -------------------------------------------------------------------------
     // Main Functions
@@ -66,41 +50,89 @@ contract ServiceBond {
 
     /**
      * @notice Deposit ETH to bond a specific ENS node.
-     * @dev Anyone can deposit to any node.
-     * @param node The namehash of the ENS domain (e.g. namehash('fast-gpt.eth'))
+     * @dev Optionally can be called by anyone (VC funding model).
+     *      Resets unbondRequestTime if an exit was pending (prevents exit fakeouts).
+     * @param node The namehash of the ENS domain
      */
     function deposit(bytes32 node) external payable {
-        require(msg.value > 0, "No value sent");
+        // Validation: None strictly required on amount, but 0 value has logic implications below
+        
+        BondInfo storage bond = bonds[node];
 
-        bonds[node] += msg.value;
+        // 1. Logic: Add funds
+        bond.amount += msg.value;
 
-        emit BondIncreased(node, msg.value, bonds[node]);
+        // 2. Logic: Set creation time if this is the first deposit
+        if (bond.creationTime == 0 && bond.amount > 0) {
+            bond.creationTime = block.timestamp;
+        }
+
+        // 3. Logic: Cancel any pending exit
+        // If money is added, the node is considered active again.
+        if (bond.unbondRequestTime > 0) {
+            bond.unbondRequestTime = 0;
+        }
+
+        emit BondIncreased(node, msg.value, bond.amount);
     }
 
     /**
-     * @notice Withdraw bonded ETH. Only the owner of the .eth name can withdraw.
-     * @param label The keccak256 label of the name (e.g. keccak256('fast-gpt'))
-     * @param amount Amount to withdraw in wei
+     * @notice Signal intent to exit and withdraw funds.
+     * @dev Starts the unbonding timer. Must be owner.
+     * @param node The namehash of the ENS domain
      */
-    function withdraw(uint256 label, uint256 amount) external nonReentrant {
-        // 1. Check Ownership via Base Registrar
-        // ownerOf will revert if token doesn't exist
-        address owner = registrar.ownerOf(label);
-        require(owner == msg.sender, "Not Name Owner");
+    function initiateExit(bytes32 node) external {
+        // Validation: Must be owner of the name
+        require(ensRegistry.owner(node) == msg.sender, "Not Name Owner");
 
-        // 2. Reconstruct the Node Hash
-        // node = keccak256(ETH_NODE_HASH + label_hash)
-        bytes32 node = keccak256(abi.encodePacked(ETH_NODE_HASH, bytes32(label)));
+        BondInfo storage bond = bonds[node];
+        require(bond.amount > 0, "No bonded amount");
+        require(bond.unbondRequestTime == 0, "Exit already initiated");
 
-        // 3. Check Balance
-        require(bonds[node] >= amount, "Insufficient Bond");
+        // Logic: Set timer
+        bond.unbondRequestTime = block.timestamp;
 
-        // 4. Update State
-        bonds[node] -= amount;
-        emit BondWithdrawn(node, amount, bonds[node]);
+        emit ExitInitiated(node, bond.unbondRequestTime);
+    }
 
-        // 5. Transfer Funds
-        (bool sent, ) = msg.sender.call{value: amount}("");
+    /**
+     * @notice Finalize the exit and withdraw funds.
+     * @dev Checks timer and ownership.
+     * @param node The namehash of the ENS domain
+     */
+    function finalizeExit(bytes32 node) external {
+        // Validation: Must be owner of the name
+        // (Ownership can change during unbonding period, we always check CURRENT owner)
+        require(ensRegistry.owner(node) == msg.sender, "Not Name Owner");
+
+        BondInfo storage bond = bonds[node];
+
+        // Validation: Exit must be initiated
+        require(bond.unbondRequestTime > 0, "Exit not initiated");
+
+        // Validation: Time must have passed
+        require(block.timestamp >= bond.unbondRequestTime + UNBONDING_PERIOD, "Unbonding period not over");
+
+        uint256 payout = bond.amount;
+        require(payout > 0, "No funds to withdraw");
+
+        // Logic: Reset state
+        bond.amount = 0;
+        bond.unbondRequestTime = 0;
+
+        emit BondWithdrawn(node, payout);
+
+        // Interaction: Send ETH
+        (bool sent, ) = msg.sender.call{value: payout}("");
         require(sent, "Failed to send Ether");
+    }
+
+    /**
+     * @notice Read the full bond state for a node.
+     * @param node The namehash of the ENS domain
+     */
+    function getBond(bytes32 node) external view returns (uint256 amount, uint256 creationTime, uint256 unbondRequestTime) {
+        BondInfo memory bond = bonds[node];
+        return (bond.amount, bond.creationTime, bond.unbondRequestTime);
     }
 }

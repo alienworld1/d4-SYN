@@ -8,13 +8,12 @@ contract Withdraw is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address bondAddress = vm.envAddress("BOND_ADDRESS");
-        uint256 label = vm.envUint("LABEL");
-        uint256 amount = vm.envUint("AMOUNT");
+        bytes32 node = vm.envBytes32("NODE");
 
         vm.startBroadcast(deployerPrivateKey);
 
-        ServiceBond(bondAddress).withdraw(label, amount);
-        console.log("Withdrawn", amount, "wei from label", label);
+        ServiceBond(bondAddress).finalizeExit(node);
+        console.log("Finalized exit for node", vm.toString(node));
 
         vm.stopBroadcast();
     }

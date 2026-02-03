@@ -12,3 +12,6 @@ docs/
 
 # Dotenv file
 .env
+
+# for now, will remove later
+lib
