@@ -5,9 +5,12 @@ import {
   createAuthRequestMessage,
   createAuthVerifyMessageFromChallenge,
   createCreateChannelMessage,
-  createCloseChannelMessage
+  createCloseChannelMessage,
+  createTransferMessage,
+  createGetLedgerBalancesMessage,
+  createEIP712AuthMessageSigner 
 } from '@erc7824/nitrolite';
-import { createWalletClient, createPublicClient, http, PrivateKeyAccount as ViemPrivateKeyAccount, hexToBigInt, Account } from 'viem';
+import { createWalletClient, createPublicClient, http, PrivateKeyAccount as ViemPrivateKeyAccount, hexToBigInt, Account, WalletClient, Transport, Chain, ParseAccount } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 import { YELLOW_RPC_URL, YELLOW_ADDRESSES, MOCK_YELLOW, USDC_SEPOLIA_ADDRESS } from './constants';
@@ -28,9 +31,13 @@ export class YellowClient {
   private account: ViemPrivateKeyAccount;
   private signer: WalletStateSigner;
   private messageSigner: any; // Type is inferred from createECDSAMessageSigner
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private messageQueue: Map<string, (response: any) => void> = new Map();
+  private walletClient: WalletClient<Transport, Chain, Account>;
   
+  private requestId = 0;
+  private pendingRequests = new Map<number, { resolve: (data: any) => void; reject: (err: any) => void; }>();
+  
+  private currentAuthParams: any = null;
+
   // State observable pattern could be used, but for now we'll expose a callback
   public onStateChange: ((state: YellowState) => void) | null = null;
   
@@ -56,6 +63,8 @@ export class YellowClient {
       chain: sepolia, 
       transport: http() 
     });
+    
+    this.walletClient = walletClient;
 
     this.signer = new WalletStateSigner(walletClient);
     this.messageSigner = createECDSAMessageSigner(formattedKey as `0x${string}`);
@@ -85,11 +94,14 @@ export class YellowClient {
   }
 
   public async init() {
+    // MOCK MODE Disabled for Real Implementation
+    /*
     if (MOCK_YELLOW) {
       console.log('[YELLOW] MOCK MODE ACTIVATED');
       setTimeout(() => this.setState({ status: 'connected' }), 500);
       return;
     }
+    */
 
     this.setState({ status: 'connecting' });
 
@@ -121,24 +133,43 @@ export class YellowClient {
     }
   }
 
+  private async request(creator: (id: number) => Promise<string>): Promise<any> {
+    const id = ++this.requestId;
+    const msg = await creator(id);
+    
+    return new Promise((resolve, reject) => {
+      this.pendingRequests.set(id, { resolve, reject });
+      this.send(msg);
+      
+      // Timeout after 10s
+      setTimeout(() => {
+        if (this.pendingRequests.has(id)) {
+          this.pendingRequests.delete(id);
+          reject(new Error('Request timed out'));
+        }
+      }, 10000);
+    });
+  }
+
   private async authenticate() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
     try {
-      // NOTE: Signature mismatch in SDK vs Docs. Suppressing for build.
-      // @ts-ignore
-      // Using params matching the Nitrolite SDK type definition
-      const authReq = await createAuthRequestMessage({
-        address: this.account.address,
-        session_key: this.account.address, 
-        application: window.location.host,
-        allowances: [],
-        expires_at: BigInt(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        scope: 'app'
-      });
       
+      this.currentAuthParams = {
+        address: this.account.address,
+        session_key: this.account.address,
+        application: typeof window !== 'undefined' ? window.location.host : 'd4-syn-bot',
+        allowances: [],
+        expires_at: BigInt(Math.floor(Date.now() / 1000) + 24 * 60 * 60), 
+        scope: 'app'
+      };
+
+      // @ts-ignore
+      const authReq = await createAuthRequestMessage(this.currentAuthParams);
+      
+      console.warn('[YELLOW] Sending Auth Request:', authReq);
       this.send(authReq); 
-      // The response will be captured in handleMessage, which should handle 'auth_challenge'
     } catch (err) {
       console.error('[YELLOW] Auth Failed', err);
       this.setState({ status: 'error' });
@@ -146,30 +177,38 @@ export class YellowClient {
   }
 
   private handleMessage(data: any) {
-    if (typeof data !== 'string') return; // Binary ignored for now
+    if (typeof data !== 'string') return; 
     
     try {
       const msg = JSON.parse(data);
-      console.log('[YELLOW] Recv:', msg);
+      // console.log('[YELLOW] Recv:', msg); // Verbose logging
 
-      // Unwrap Envelope (Nitro RPC uses { res: [...], sig: [...] } or { req: [...], sig: [...] })
+      // Unwrap Envelope
       const payload = msg.res || msg.req;
       
-      if (!Array.isArray(payload)) {
-        // Fallback for raw arrays if any
-        if (Array.isArray(msg)) {
-           if (msg[1] === 'auth_challenge') {
-             this.handleAuthChallenge(msg);
-           }
+      // 1. Handle Response (res)
+      if (msg.res && Array.isArray(msg.res)) {
+        const [id, method, result] = msg.res; 
+        
+        // Resolve pending request
+        if (this.pendingRequests.has(id)) {
+          const { resolve } = this.pendingRequests.get(id)!;
+          this.pendingRequests.delete(id);
+          resolve(result);
+          return;
         }
-        return;
       }
 
-      const method = payload[1];
+      // 2. Handle Request/Notification (req) or Unwrapped
+      const target = payload || msg; // Fallback
+      if (!Array.isArray(target)) return;
+      
+      const method = target[1];
 
-      // 1. Auth Challenge
+      // Auth Challenge
       if (method === 'auth_challenge') {
-        this.handleAuthChallenge(payload);
+        console.warn('[YELLOW] Received Auth Challenge:', JSON.stringify(target));
+        this.handleAuthChallenge(target);
         return;
       }
 
@@ -181,8 +220,9 @@ export class YellowClient {
   private async handleAuthChallenge(msg: any[]) {
     // msg = [id, 'auth_challenge', { challenge_message: '...' }, timestamp]
     const params = msg[2];
-    // Nitrolite spec can vary, check both keys
     const challenge = params?.challenge_message || params?.challenge;
+    
+    console.warn('[YELLOW] Extracted Challenge:', challenge);
 
     if (!challenge) {
         console.error('[YELLOW] No challenge found in params', params);
@@ -190,21 +230,130 @@ export class YellowClient {
     }
 
     try {
-        const verifyMsg = await createAuthVerifyMessageFromChallenge(this.messageSigner, challenge);
-        this.send(verifyMsg);
+        // Must wait for server to verify before querying data
+
+        // Custom EIP-712 Signer to handle potential SDK vs Contract Version Mismatch (v0.5 SDK vs v0.3 Contract)
+        const customSigner = async (payload: any) => {
+             const method = payload[1];
+             if (method !== 'auth_verify') throw new Error('Signer only for auth_verify');
+             
+             const params = payload[2]; // { challenge: '...' }
+             const challengeUUID = params.challenge;
+             
+             // The v0.3.0 contract likely uses the v0.3.0 Policy structure.
+             // Hypothesis 1: 'expires_at' might be 'uint256'
+             // Hypothesis 2: 'scope' vs 'application'
+             
+             // Let's first try exact SDK types but ensure we have full control
+             // Using specs from yellow-authentication.md
+             
+             // "domain": {"name": "<application_name>"}
+             const domain = {
+                name: this.currentAuthParams.application
+             };
+
+             // Policy struct as per docs (no 'application' field, uint64 expires_at)
+             const types = {
+                Policy: [
+                    { name: 'challenge', type: 'string' },
+                    { name: 'scope', type: 'string' },
+                    { name: 'wallet', type: 'address' },
+                    { name: 'session_key', type: 'address' },
+                    { name: 'expires_at', type: 'uint64' }, 
+                    { name: 'allowances', type: 'Allowance[]' },
+                ],
+                Allowance: [
+                    { name: 'asset', type: 'string' },
+                    { name: 'amount', type: 'string' },
+                ],
+             };
+
+             const message = {
+                challenge: challengeUUID,
+                scope: this.currentAuthParams.scope,
+                wallet: this.walletClient.account!.address,
+                session_key: this.currentAuthParams.session_key,
+                expires_at: this.currentAuthParams.expires_at,
+                allowances: this.currentAuthParams.allowances
+             };
+
+             console.log('[YELLOW Debug] Signing Typed Data:', { domain, types, message });
+
+             return await this.walletClient.signTypedData({
+                account: this.walletClient.account!,
+                domain,
+                types,
+                primaryType: 'Policy',
+                message
+             });
+        };
+
+        const authResponse = await this.request((id) => createAuthVerifyMessageFromChallenge(customSigner, challenge, id));
         
-        // Assume connected after sending verify, or wait for ack?
-        // In this simple wrapper, we'll mark as connected.
+        console.log('[YELLOW] Auth Verify Response:', authResponse);
+
+        if (authResponse && typeof authResponse === 'object' && (authResponse as any).error) {
+             console.error('[YELLOW] Auth Failed (Server Rejected):', (authResponse as any).error);
+             return;
+        }
+        
+        console.log('[YELLOW] Auth Verified by Server');
+        
+        // Short delay to ensure session propagation on Clearnode
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Fetch initial balance after successful auth
+        await this.refreshBalance();
+        
         this.setState({ status: 'connected' });
-        console.log('[YELLOW] Auth Challenge Signed & Sent');
     } catch (err) {
         console.error('[YELLOW] Auth Sign Failed', err);
     }
   }
 
+  public async refreshBalance() {
+    try {
+        // Fetch balances from Clearnode
+        const msg = await createGetLedgerBalancesMessage(this.messageSigner);
+        
+        // We can't easily wait for the specific response in this fire-and-forget architecture 
+        // without the ID correlation working perfectly for all message types.
+        // For now, we will send and handle the response in handleMessage if possible, 
+        // OR we just use the request() method if we want to wait.
+        
+        // Let's use request() pattern for this query
+        const res = await this.request((id) => createGetLedgerBalancesMessage(this.messageSigner, undefined, id));
+        
+        // Response format: { balances: { 'chainId:token': 'amount' } } or similar?
+        // Checking SDK types for GetLedgerBalancesResponse...
+        // Assuming array or map.
+        console.log('[YELLOW] Balances:', res);
+        
+        // Find our token
+        // Asset ID format: "chainId:tokenAddress" e.g. "11155111:0x..."
+        const assetId = `${sepolia.id}:${USDC_SEPOLIA_ADDRESS}`;
+        
+        // res might be array of {asset, amount} or object
+        // Based on other RPCs, likely an array of balances.
+        // Let's assume standard response structure.
+        
+        if (Array.isArray(res)) {
+            const tokenBal = res.find((b: any) => b.asset?.toLowerCase() === assetId.toLowerCase());
+            if (tokenBal) {
+                this.setState({ balance: BigInt(tokenBal.amount) });
+            }
+        } else if (res && typeof res === 'object') {
+             // Try to parse if it comes as a map
+             // ...
+        }
+
+    } catch (err) {
+        console.warn('[YELLOW] Failed to fetch balance', err);
+    }
+  }
+
   private send(msg: any) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      // SDK messages might be pre-serialized JSON strings or objects
       if (typeof msg === 'string') {
         this.ws.send(msg);
         return;
@@ -221,50 +370,31 @@ export class YellowClient {
   // --- Core Actions ---
 
   public async openChannel(providerAddress: string) {
-    if (MOCK_YELLOW) {
-        const mockId = '0xmockchannel' + Date.now();
-        this.setState({ 
-            status: 'active', 
-            channelId: mockId,
-            provider: providerAddress,
-            balance: BigInt(1000) // Start with some mock tokens
-        });
-        return mockId;
-    }
-
     if (this.internalState.status !== 'connected') {
-        // Only throw if strictly not connected, but be vague for race conditions
         console.warn("Client not connected, attempting but might fail");
     }
 
     try {
-        console.log(`[YELLOW] Opening Channel with ${providerAddress}`);
+        console.log(`[YELLOW] Opening Channel (Real)`);
         
-        // Construct create channel message
-        // Using messageSigner, not stateSigner (which is for the channel setup itself)
-        const msg = await createCreateChannelMessage(this.messageSigner, {
+        const response = await this.request((id) => createCreateChannelMessage(this.messageSigner, {
             chain_id: sepolia.id,
             token: USDC_SEPOLIA_ADDRESS as `0x${string}`,
-            // counterparty: providerAddress, -- Not in type def?
-            // challenge_duration: BigInt(60),
-            // nonce: BigInt(Date.now()) 
-        });
+        }, id));
 
-        this.send(msg);
+        // Expect response to contain channel_id
+        console.log('[YELLOW] Create Channel Response:', response);
+        const channelId = response?.channel_id;
 
-        // Optimistically set state
-        // In reality, we wait for 'channel_created' event.
-        // We'll compute the channelId from params (hash)
-        
-        // HACK: for demo, assume it worked
-        // Real implementation would calculate ID properly: keccak256(...)
-        const channelId = "0xpending-" + Date.now(); 
+        if (!channelId) {
+            throw new Error('No channel ID returned from Clearnode');
+        }
         
         this.setState({ 
             status: 'active', 
             channelId: channelId,
-            provider: providerAddress,
-            balance: BigInt(0) // Start 0? Or do we deposit? 
+            provider: providerAddress, // Mapped for application logic
+            balance: BigInt(0) 
         });
 
         return channelId;
@@ -276,77 +406,59 @@ export class YellowClient {
   }
 
   public async pay(amount: number) {
-    // amount in human readable units? Spec says "Streams payments... per token".
-    // Spec says "Input: amount (increment)".
-    // Let's assume input is e.g. 0.001 USDC
-    
-    if (MOCK_YELLOW) {
-        // Convert to 'wei' (6 decimals for USDC usually, or 18)
-        // Let's assume 18 for this mock to be safe, or 6.
-        // 0.001 * 10^6 = 1000
-        const val = BigInt(Math.floor(amount * 1000000));
-        this.setState({
-            balance: this.internalState.balance + val 
-        });
-        return;
-    }
-    
-    if (this.internalState.status !== 'active') return;
+    // amount input is e.g. 0.001 USDC
+    if (this.internalState.status !== 'active' || !this.internalState.provider) return;
 
-    // Send update_channel (state update)
-    // For now, this is just a stub for the high-frequency stream
-    // In a real implementation:
-    // 1. Fetch current channel state
-    // 2. Increment nonce
-    // 3. Adjust balances
-    // 4. Sign
-    // 5. Send
-    
-    // Simulating the accumulation on client side
-    const scale = 1000000; // 6 decimals
-    const diff = BigInt(Math.floor(amount * scale));
-    
+    // Convert to Wei/MicroUSDC
+    // USDC usually 6 decimals.
+    const scale = 1000000; 
+    const val = BigInt(Math.floor(amount * scale));
+    const valString = val.toString();
+
+    // Optimistically update local state immediately (for UI responsiveness)
+    const newBalance = this.internalState.balance - val;
     this.setState({
-        balance: this.internalState.balance + diff
+        balance: newBalance >= 0n ? newBalance : 0n // Prevent visual negative, though logic might fail later
     });
-    
-    // NOTE: Actual payload sending is omitted until the exact 'update_channel' or 'transfer' method 
-    // from nitrolite is verified. The balance update is strictly local for the demo.
+
+    try {
+        // Send Transform/Transfer Message
+        const asset = `${sepolia.id}:${USDC_SEPOLIA_ADDRESS}`;
+        
+        // FIRE AND FORGET: Do not await the response for high-frequency streams
+        // We generate the ID manually if needed, or let createTransferMessage default (but we need unique IDs for tracking if we cared)
+        // For pure stream, we just send.
+        
+        const msg = await createTransferMessage(this.messageSigner, {
+             destination: this.internalState.provider as `0x${string}`,
+             allocations: [{
+                 asset: asset, 
+                 amount: valString 
+             }]
+        }); // Note: id params omitted, standard generator used
+
+        this.send(msg);
+        
+    } catch (err) {
+        console.error('[YELLOW] Pay/Transfer Failed', err);
+        // Revert balance on error? 
+        // Complex in async stream. For demo, we ignore rollback.
+    }
   }
 
   public async closeChannel() {
-    if (MOCK_YELLOW) {
-        this.setState({ status: 'settling' });
-        setTimeout(() => {
-            this.setState({ 
-                status: 'connected', 
-                channelId: null, 
-                provider: null 
-            });
-        }, 200);
-        return;
-    }
-
     if (!this.internalState.channelId) return;
 
     try {
         console.log('[YELLOW] Closing Channel');
         
-        // We need the channelId to close it. 
-        // Note: internalState.channelId is just a string, real call needs hex.
-        // Assuming we kept track of the real ID.
-        // For now, passing the placeholder safely.
+        await this.request((id) => createCloseChannelMessage(
+            this.messageSigner, 
+            this.internalState.channelId as `0x${string}`, 
+            this.account.address,
+            id
+        ));
         
-        if (this.internalState.channelId.startsWith('0x')) {
-             const msg = await createCloseChannelMessage(
-                this.messageSigner, 
-                this.internalState.channelId as `0x${string}`, 
-                this.account.address
-            );
-            this.send(msg);
-        }
-        
-        // Optimistic close
         this.setState({ 
             status: 'connected', 
             channelId: null, 

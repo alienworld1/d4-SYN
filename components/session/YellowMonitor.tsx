@@ -22,7 +22,7 @@ export function YellowMonitor() {
   return (
     <div className="border border-grid mt-4 p-4 bg-void/80 backdrop-blur-sm font-mono text-xs relative overflow-hidden group">
         {/* Decorative scanning line */}
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-synapse to-transparent opacity-20" />
+        <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-synapse to-transparent opacity-20" />
 
         <div className="flex justify-between items-center mb-4">
             <span className="opacity-50 uppercase tracking-widest text-[10px]">Nitrolite Uplink</span>
