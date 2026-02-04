@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@erc7824/nitrolite": "^0.5.3",
     "@google/generative-ai": "^0.24.1",
     "@metamask/sdk": "^0.34.0",
     "@rainbow-me/rainbowkit": "^2.2.10",

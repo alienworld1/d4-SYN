@@ -2,6 +2,7 @@ import { Shell } from "@/components/layout/Shell";
 import { SplitPane } from "@/components/layout/SplitPane";
 import { Pane } from "@/components/layout/Pane";
 import { FuelGauge } from "@/components/session/FuelGauge";
+import { YellowMonitor } from "@/components/session/YellowMonitor";
 
 export default function Home() {
   return (
@@ -28,6 +29,10 @@ export default function Home() {
             <div className="flex flex-col gap-6">
               {/* MODULE 2: FUEL GAUGE */}
               <FuelGauge />
+              
+              {/* MODULE 4: YELLOW MONITOR */}
+              <YellowMonitor />
+
 
               <div className="space-y-2 text-xs font-mono border-t border-[#333] pt-4">
                 <div className="text-[10px] text-gray-500 mb-2">SYSTEM_LOGS</div>
