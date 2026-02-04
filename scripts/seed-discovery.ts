@@ -41,9 +41,6 @@ async function setRecord(name: string, key: string, value: string) {
   console.log(`\n⏳ Setting ${name} -> [${key}] = "${value}"...`)
 
   try {
-    // Check if the resolver is correct (Optional safety check, skipping for speed per spec)
-    // Calling setText on the WRONG address will verify nothing happens or revert.
-
     const hash = await client.writeContract({
       address: RESOLVER_ADDRESS,
       abi: RESOLVER_ABI,
@@ -85,8 +82,8 @@ async function main() {
 
   // 3. Cheap Agent
   const cheapAgent = 'cheap-finance-agent.eth'
-  // await setRecord(cheapAgent, 'd4.type', 'service')
-  // await setRecord(cheapAgent, 'd4.bond', BOND_CONTRACT)
+  await setRecord(cheapAgent, 'd4.type', 'service')
+  await setRecord(cheapAgent, 'd4.bond', BOND_CONTRACT)
   await setRecord(cheapAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/cheap')
   await setRecord(cheapAgent, 'd4.payment', account.address)
 
