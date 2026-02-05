@@ -555,28 +555,40 @@ export class YellowClient {
     const valString = val.toString();
 
     // Optimistically update local state immediately (for UI responsiveness)
+    // Synchronous update ensures sequential calls in a loop see the decremented balance
     const newBalance = this.internalState.balance - val;
+    
+    if (newBalance < 0n) {
+        console.warn('[YELLOW] Insufficient balance for payment');
+        return;
+    }
+
     this.setState({
-        balance: newBalance >= 0n ? newBalance : 0n // Prevent visual negative, though logic might fail later
+        balance: newBalance
     });
 
     try {
         // Send Transform/Transfer Message
         const asset = 'ytest.usd';
         
+        // Use explicit, sequential ID to prevent collisions during high-frequency bursting
+        const txRequestId = ++this.requestId;
+
         // FIRE AND FORGET: Do not await the response for high-frequency streams
-        // We generate the ID manually if needed, or let createTransferMessage default (but we need unique IDs for tracking if we cared)
-        // For pure stream, we just send.
-        
-        const msg = await createTransferMessage(this.messageSigner, {
-             destination: this.internalState.provider as `0x${string}`,
-             allocations: [{
-                 asset: asset, 
-                 amount: valString 
-             }]
-        }); // Note: id params omitted, standard generator used
+        const msg = await createTransferMessage(
+            this.messageSigner, 
+            {
+                destination: this.internalState.provider as `0x${string}`,
+                allocations: [{
+                    asset: asset, 
+                    amount: valString 
+                }]
+            },
+            txRequestId
+        );
 
         this.send(msg);
+        console.log(`[YELLOW] Pay Sent: ${amount} (ReqID: ${txRequestId})`);
         
     } catch (err) {
         console.error('[YELLOW] Pay/Transfer Failed', err);

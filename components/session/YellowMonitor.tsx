@@ -95,6 +95,19 @@ export function YellowMonitor() {
                             STREAM_TX
                         </button>
                         <button 
+                             onClick={async () => {
+                                 console.log('INIT STRESS TEST: 20 TX @ 50ms');
+                                 for(let i=0; i<20; i++) {
+                                     pay(0.001);
+                                     await new Promise(r => setTimeout(r, 50)); // ~20 TPS burst
+                                 }
+                             }}
+                             className="px-2 py-1 bg-warn/10 border border-warn/30 text-warn hover:bg-warn/20 transition-all uppercase text-[10px]"
+                             title="Burst 20 TX (Stress Test)"
+                        >
+                            BURST_TEST
+                        </button>
+                        <button 
                              onClick={() => closeChannel()}
                              className="px-2 py-1 bg-error/10 border border-error/30 text-error hover:bg-error/20 transition-all uppercase text-[10px]"
                              title="Flash Switch"
