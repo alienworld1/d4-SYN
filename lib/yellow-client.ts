@@ -55,8 +55,8 @@ export class YellowClient {
   
   private currentAuthParams: any = null;
 
-  // State observable pattern could be used, but for now we'll expose a callback
-  public onStateChange: ((state: YellowState) => void) | null = null;
+  // State observable pattern - supports multiple listeners
+  private listeners: ((state: YellowState) => void)[] = [];
   public eventBus = new EventTarget();
   
   private internalState: YellowState = {
@@ -111,11 +111,19 @@ export class YellowClient {
     });
   }
 
+  public subscribe(callback: (state: YellowState) => void): () => void {
+    this.listeners.push(callback);
+    // Send immediate update
+    callback(this.internalState);
+    
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== callback);
+    };
+  }
+
   private setState(updates: Partial<YellowState>) {
     this.internalState = { ...this.internalState, ...updates };
-    if (this.onStateChange) {
-      this.onStateChange(this.internalState);
-    }
+    this.listeners.forEach(listener => listener(this.internalState));
   }
 
   public getState(): YellowState {

@@ -77,14 +77,14 @@ async function main() {
   const fastAgent = 'fast-finance-agent.eth'
   await setRecord(fastAgent, 'd4.type', 'service')
   await setRecord(fastAgent, 'd4.bond', BOND_CONTRACT)
-  await setRecord(fastAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/fast')
+  await setRecord(fastAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/fast-finance-agent')
   await setRecord(fastAgent, 'd4.payment', account.address) // Paying ourselves for demo
 
   // 3. Cheap Agent
   const cheapAgent = 'cheap-finance-agent.eth'
   await setRecord(cheapAgent, 'd4.type', 'service')
   await setRecord(cheapAgent, 'd4.bond', BOND_CONTRACT)
-  await setRecord(cheapAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/cheap')
+  await setRecord(cheapAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/cheap-finance-agent')
   await setRecord(cheapAgent, 'd4.payment', account.address)
 
   console.log(`\n🎉 Discovery Seeding Complete!`)

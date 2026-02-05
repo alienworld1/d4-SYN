@@ -29,29 +29,12 @@ export function useYellow() {
     }
 
     // Subscribe to updates
-    const handleUpdate = (newState: YellowState) => {
+    const unsubscribe = globalClient.subscribe((newState) => {
       setState(newState);
-    };
-
-    // Register callback
-    // Note: Simple callback replacement. 
-    // If multiple components use this, we'd need an event emitter.
-    // For this module, assuming one main consumer (Shell/ProviderView).
-    // To be safe, we can make `onStateChange` an array or use a simple subscription pattern in the class.
-    // For now, I'll hack it: wrapper captures the callback.
-    const originalCallback = globalClient.onStateChange;
+    });
     
-    // Chain callbacks if needed, or just overwrite (last writer wins - acceptable for this demo scope)
-    globalClient.onStateChange = handleUpdate;
-    
-    // Initial sync
-    setState(globalClient.getState());
-
     return () => {
-      // We don't destroy the client, but we detach our specific listener
-      if (globalClient && globalClient.onStateChange === handleUpdate) {
-         globalClient.onStateChange = null; 
-      }
+      unsubscribe();
     };
   }, [privateKey]);
 
