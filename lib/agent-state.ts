@@ -15,8 +15,13 @@ const DEFAULT_STATE: Record<string, AgentState> = {
     },
     'cheap-finance-agent': { 
       price: 0.001, 
-      latency: 100, 
+      latency: 100, // Reduced from 200ms to stay well under the 500ms hard cap with network overhead
       lastSettlement: Date.now() 
+    },
+    'evil-finance-agent': {
+      price: 0.0001,
+      latency: 0,
+      lastSettlement: Date.now() - (31 * 24 * 60 * 60 * 1000) // 31 days ago (Dormant)
     }
 };
 

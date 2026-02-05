@@ -1,87 +1,57 @@
-import { createWalletClient, http, publicActions, parseAbiItem, namehash, parseEther } from 'viem'
-import type { Hash } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { sepolia } from 'viem/chains'
-import dotenv from 'dotenv'
+import { createWalletClient, http, parseAbi, namehash, parseEther } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { sepolia } from 'viem/chains';
+import dotenv from 'dotenv';
 
-dotenv.config()
+dotenv.config();
 
-// --- Configuration ---
-const BOND_CONTRACT = '0x31D4BbD8FFB9c77B90F5b679D19C998ACdDC14AF'
+const BOND_CONTRACT_ADDRESS = '0x31D4BbD8FFB9c77B90F5b679D19C998ACdDC14AF';
 
-// Flexible env var support
-const RPC_URL = process.env.RPC_URL || process.env.SEPOLIA_URL
-const PRIVATE_KEY = process.env.PRIVATE_KEY as Hash
+const ABI = parseAbi([
+  'function deposit(bytes32 node) external payable'
+]);
 
-if (!RPC_URL) {
-  console.error("❌ Missing RPC_URL (or SEPOLIA_URL) in .env")
-  process.exit(1)
-}
-if (!PRIVATE_KEY) {
-  console.error("❌ Missing PRIVATE_KEY in .env")
-  process.exit(1)
-}
+const CONFIG = [
+  { name: 'fast-finance-agent.eth', amount: '0.05' },
+  { name: 'cheap-finance-agent.eth', amount: '0.04' },
+  { name: 'evil-finance-agent.eth', amount: '0.0001' }
+];
 
-// --- ABI ---
-const BOND_ABI = [
-  parseAbiItem('function deposit(bytes32 node) external payable')
-]
+async function main() {
+  const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
+  const privateKey = process.env.PRIVATE_KEY;
 
-// --- Setup ---
-const account = privateKeyToAccount(PRIVATE_KEY)
-const client = createWalletClient({
-  account,
-  chain: sepolia,
-  transport: http(RPC_URL)
-}).extend(publicActions)
+  if (!privateKey) {
+    console.error('Missing PRIVATE_KEY in .env');
+    process.exit(1);
+  }
 
-// --- Helper ---
-async function depositBond(domain: string, amountEth: string) {
-  const node = namehash(domain)
-  const value = parseEther(amountEth)
-  
-  console.log(`\n💰 Bonding ${amountEth} ETH for ${domain}...`)
-  console.log(`   Node Hash: ${node}`)
+  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const client = createWalletClient({
+    account,
+    chain: sepolia,
+    transport: http(rpcUrl)
+  });
 
-  try {
-    const hash = await client.writeContract({
-      address: BOND_CONTRACT,
-      abi: BOND_ABI,
-      functionName: 'deposit',
-      args: [node],
-      value: value
-    })
+  console.log(`Seeding bonds from ${account.address}...`);
 
-    console.log(`   Hash: ${hash}`)
-    console.log(`   ⏳ Waiting for confirmation...`)
-    
-    // Wait for confirmation
-    const receipt = await client.waitForTransactionReceipt({ hash })
-    console.log(`   ✅ Sent! Block: ${receipt.blockNumber}`)
+  for (const agent of CONFIG) {
+    const node = namehash(agent.name);
+    console.log(`Bonding ${agent.amount} ETH for ${agent.name} (${node})...`);
 
-  } catch (error: any) {
-    console.error(`   ❌ Failed: ${error.message || error}`)
+    try {
+      const hash = await client.writeContract({
+        address: BOND_CONTRACT_ADDRESS,
+        abi: ABI,
+        functionName: 'deposit',
+        args: [node],
+        value: parseEther(agent.amount)
+      });
+      console.log(`  -> Tx: ${hash}`);
+    } catch (e: any) {
+      console.error(`  -> Failed: ${e.message}`);
+    }
   }
 }
 
-// --- Main Script ---
-async function main() {
-  console.log(`\n🚀 Starting Bond Seeding Script`)
-  console.log(`   Signer: ${account.address}`)
-  console.log(`   Contract: ${BOND_CONTRACT}`)
-
-  // 1. High Trust Deposit (0.05 ETH)
-  await depositBond('fast-finance-agent.eth', '0.05')
-
-  // 2. Low Trust Deposit (0.01 ETH)
-  // This demonstrates the "Sort by Capital" logic in the d4-syn dashboard
-  await depositBond('cheap-finance-agent.eth', '0.01')
-
-  console.log(`\n🎉 Bonding Complete! The Trust Scores should now reflect these stakes.`)
-  process.exit(0)
-}
-
-main().catch((error) => {
-    console.error(error)
-    process.exit(1)
-})
+main();

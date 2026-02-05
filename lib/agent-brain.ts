@@ -354,6 +354,13 @@ export class AgentBrain extends EventTarget {
       // 1. SLA Hard Cap
       if (slaResult && slaResult.error === 'TIMEOUT') {
           this.log('ARB', `SLA Violation (Latency > 500ms).`);
+          
+          // Safety Check: Do we have anywhere to go?
+          const nextProvider = this.providers.find(p => p.ensName !== current.ensName && p.status !== 'offline');
+          if (!nextProvider) {
+              this.log('WARN', 'SLA Triggered but no alternatives. Staying put.');
+              return false;
+          }
           return true;
       }
 
@@ -361,7 +368,12 @@ export class AgentBrain extends EventTarget {
       const nextBest = this.providers.find(p => p.ensName !== current.ensName && p.status !== 'offline');
       if (!nextBest) return false; // No alternative
 
-      const baselinePrice = 0.001; 
+      // Adjusted Baseline: 
+      // Fast Agent is $0.005. Cheap Agent is $0.001.
+      // If we use 0.001 * 3 = 0.003, Fast Agent triggers immediately.
+      // We set baseline to 0.002, so trigger is > 0.006.
+      // Fast Agent ($0.005) is Safe. Spike ($0.05) is Triggered.
+      const baselinePrice = 0.002; 
       
       if (currentPrice > baselinePrice * 3) {
           this.log('ARB', `Price Spike Detected: $${currentPrice} > $${baselinePrice * 3}`);

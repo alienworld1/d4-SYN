@@ -40,6 +40,11 @@ export async function POST(
                 const result = await model.generateContentStream(prompt);
 
                 for await (const chunk of result.stream) {
+                    if (req.signal.aborted) {
+                        controller.close();
+                        return;
+                    }
+
                     const text = chunk.text();
                     
                     // CRITICAL: Re-fetch state INSIDE the loop to capture live price spikes
@@ -68,20 +73,32 @@ export async function POST(
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'));
                 controller.close();
             } catch (error: any) {
+                // Silence "Controller is already closed" errors which happen on client abort
+                if (req.signal.aborted || error.message.includes('Controller is already closed')) {
+                     return; 
+                }
+
                 console.error("Gemini Stream Error:", error);
                 
                 // Fallback for throttling or API errors
-                // We keep the stream alive to show the "System Overload" message
-                const errorData = JSON.stringify({
-                    type: 'error',
-                    text: `[SYSTEM: NETWORK_CONGESTION] ${error.message || 'Stream interrupted'}.`,
-                    price: agentState.price, // Charge them anyway just for fun/realism? keeping static for safety
-                    timestamp: Date.now()
-                });
-                controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
-                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                controller.close();
+                try {
+                    // We keep the stream alive to show the "System Overload" message
+                    const errorData = JSON.stringify({
+                        type: 'error',
+                        text: `[SYSTEM: NETWORK_CONGESTION] ${error.message || 'Stream interrupted'}.`,
+                        price: agentState.price, // Charge them anyway just for fun/realism? keeping static for safety
+                        timestamp: Date.now()
+                    });
+                    controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+                    controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                    controller.close();
+                } catch (e) {
+                    // Ignore secondary errors during error handling
+                }
             }
+        },
+        cancel() {
+            // Handle client disconnect cleanup if needed
         }
     });
 

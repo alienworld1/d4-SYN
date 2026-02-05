@@ -559,6 +559,14 @@ export class YellowClient {
             throw new Error('No channel ID returned from Clearnode');
         }
         
+        // Reset SLA Stats for new channel
+        this.slaStats = {
+            lastChunkTime: 0, // Critical: Reset this so the first chunk isn't penalized for the handover time
+            averageLatency: 0,
+            penaltyCount: 0,
+            totalSavings: 0
+        };
+
         this.setState({ 
             status: 'active', 
             channelId: channelId,
