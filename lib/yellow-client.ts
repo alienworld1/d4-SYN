@@ -17,6 +17,13 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 import { YELLOW_RPC_URL, YELLOW_ADDRESSES, MOCK_YELLOW, USDC_SEPOLIA_ADDRESS } from './constants';
 
+const SLA_CONFIG = {
+  SLA_TARGET_MS: 100,
+  SLA_PENALTY_STEP_MS: 50,
+  SLA_PENALTY_PERCENT: 0.10,
+  SLA_HARD_CAP_MS: 500,
+};
+
 // Types
 export type YellowStatus = 'disconnected' | 'connecting' | 'connected' | 'active' | 'settling' | 'error';
 
@@ -26,6 +33,13 @@ export interface YellowState {
   channelId: string | null;
   provider: string | null;
   address: string | null;
+}
+
+export interface YellowSLAStats {
+  lastChunkTime: number;
+  averageLatency: number;
+  penaltyCount: number;
+  totalSavings: number;
 }
 
 export class YellowClient {
@@ -43,6 +57,7 @@ export class YellowClient {
 
   // State observable pattern could be used, but for now we'll expose a callback
   public onStateChange: ((state: YellowState) => void) | null = null;
+  public eventBus = new EventTarget();
   
   private internalState: YellowState = {
     status: 'disconnected',
@@ -50,6 +65,13 @@ export class YellowClient {
     channelId: null,
     provider: null,
     address: null
+  };
+
+  private slaStats: YellowSLAStats = {
+    lastChunkTime: 0,
+    averageLatency: 0,
+    penaltyCount: 0,
+    totalSavings: 0
   };
 
   constructor(privateKey: string) {
@@ -98,6 +120,10 @@ export class YellowClient {
 
   public getState(): YellowState {
     return this.internalState;
+  }
+
+  public getTelemetry(): YellowSLAStats {
+    return { ...this.slaStats };
   }
 
   public async init() {
@@ -594,6 +620,88 @@ export class YellowClient {
         console.error('[YELLOW] Pay/Transfer Failed', err);
         // Revert balance on error? 
         // Complex in async stream. For demo, we ignore rollback.
+    }
+  }
+
+  public async payWithSLA(chunkId: number, baseRate: number) {
+    const now = performance.now();
+    
+    // 1. First Token Exception
+    // If lastChunkTime is 0, it's the first chunk or reset.
+    if (this.slaStats.lastChunkTime === 0) {
+        this.slaStats.lastChunkTime = now;
+        // Pay full amount for first chunk
+        return this.pay(baseRate).then(() => ({ 
+            signed: true, 
+            amountPaid: baseRate, 
+            latency: 0 
+        }));
+    }
+
+    // 2. Calculate Latency
+    const latency = now - this.slaStats.lastChunkTime;
+    this.slaStats.lastChunkTime = now; // Reset for next
+
+    // Update Average (Rolling of last 10 approx)
+    if (this.slaStats.averageLatency === 0) {
+        this.slaStats.averageLatency = latency;
+    } else {
+        this.slaStats.averageLatency = (this.slaStats.averageLatency * 9 + latency) / 10;
+    }
+
+    // 3. Hard Cap (Circuit Breaker)
+    if (latency > SLA_CONFIG.SLA_HARD_CAP_MS) {
+        // Telemetry
+        this.emitTelemetry('SLA_VIOLATION', { 
+            chunkId, latency, type: 'HARD_CAP' 
+        });
+        return { signed: false, error: 'TIMEOUT', latency };
+    }
+
+    // 4. Calculate Multiplier
+    let multiplier = 1.0;
+    if (latency > SLA_CONFIG.SLA_TARGET_MS) {
+        const over = latency - SLA_CONFIG.SLA_TARGET_MS;
+        const steps = Math.floor(over / SLA_CONFIG.SLA_PENALTY_STEP_MS);
+        const penalty = steps * SLA_CONFIG.SLA_PENALTY_PERCENT;
+        multiplier = Math.max(0, 1.0 - penalty);
+    }
+
+    const amount = baseRate * multiplier;
+    const isPenalty = multiplier < 1.0;
+
+    // 5. Telemetry
+    if (isPenalty) {
+        this.slaStats.penaltyCount++;
+        this.slaStats.totalSavings += (baseRate - amount);
+        
+        this.emitTelemetry('SLA_PENALTY', {
+            chunkId,
+            latency,
+            multiplier,
+            saved: baseRate - amount
+        });
+        
+        // Console Vibe
+        console.log(`%c[SLA] PENALTY -${Math.round((1-multiplier)*100)}% (${Math.round(latency)}ms)`, 'color: orange; font-weight: bold');
+    }
+
+    // 6. Pay
+    if (amount > 0) {
+        await this.pay(amount);
+    } else {
+        console.warn(`[SLA] Payment Skipped (100% Penalty) for Chunk #${chunkId}`);
+    }
+
+    // Regular Telemetry for every chunk (optional, but good for dashboard)
+    // this.emitTelemetry('SLA_STATS_UPDATE', this.getTelemetry());
+
+    return { signed: true, amountPaid: amount, latency };
+  }
+
+  private emitTelemetry(type: string, data: any) {
+    if (typeof CustomEvent !== 'undefined') {
+      this.eventBus.dispatchEvent(new CustomEvent(type, { detail: data }));
     }
   }
 

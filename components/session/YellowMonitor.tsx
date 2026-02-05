@@ -1,10 +1,36 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useYellow } from "@/hooks/useYellow";
 
 export function YellowMonitor() {
-  const { state, openChannel, closeChannel, pay } = useYellow();
+  const { state, openChannel, closeChannel, pay, payWithSLA, eventBus, getTelemetry } = useYellow();
+  const [slaMessage, setSlaMessage] = useState<string | null>(null);
+
+  // SLA Event Listener
+  useEffect(() => {
+    if (!eventBus) return; // Should be available if client init
+
+    // We can use the native EventListener since we used EventTarget
+    const onPenalty = (e: any) => {
+        const d = e.detail;
+        setSlaMessage(`[SLA] PENALTY: ${(1-d.multiplier).toFixed(2)}x (${Math.floor(d.latency)}ms)`);
+        setTimeout(() => setSlaMessage(null), 3000);
+    };
+
+    const onViolation = (e: any) => {
+         setSlaMessage(`[SLA] HARD CAP VIOLATION: ${Math.floor(e.detail.latency)}ms`);
+         setTimeout(() => setSlaMessage(null), 4000);
+    };
+
+    eventBus.addEventListener('SLA_PENALTY', onPenalty as EventListener);
+    eventBus.addEventListener('SLA_VIOLATION', onViolation as EventListener);
+
+    return () => {
+        eventBus.removeEventListener('SLA_PENALTY', onPenalty as EventListener);
+        eventBus.removeEventListener('SLA_VIOLATION', onViolation as EventListener);
+    }
+  }, [eventBus]);
 
   // Status Color Mapping
   const statusColor = {
@@ -73,6 +99,11 @@ export function YellowMonitor() {
                  <div className="text-3xl font-bold text-synapse font-sans tracking-tighter tabular-nums leading-none drop-shadow-[0_0_5px_rgba(255,234,0,0.3)]">
                     {displayBalance}<span className="text-xs opacity-50 ml-1 font-mono">USDC</span>
                  </div>
+                 {slaMessage && (
+                     <div className="text-[10px] text-warn font-bold animate-pulse mt-1 bg-black/50 px-1 border-l-2 border-warn">
+                         {slaMessage}
+                     </div>
+                 )}
             </div>
             
             {/* Dev Controls - Visible for Manual Verification */}
@@ -115,6 +146,33 @@ export function YellowMonitor() {
                             CUT
                         </button>
                     </div>
+                )}
+                {state.status === 'active' && (
+                     <button
+                        onClick={async () => {
+                            if (!payWithSLA) return;
+                            console.log('--- STARTING SLA SIMULATION ---');
+                            // 1. Reset timer (First Token)
+                            await payWithSLA(0, 0.001);
+                            
+                            const sequence = [
+                                50, // Fast
+                                80, // Fast
+                                120, // Mild Penalty
+                                200, // Big Penalty
+                                600 // Hard Cap
+                            ];
+
+                            for (let i = 0; i < sequence.length; i++) {
+                                await new Promise(r => setTimeout(r, sequence[i]));
+                                const res: any = await payWithSLA(i+1, 0.001);
+                                console.log(`[TEST] Token #${i+1} Waited ${sequence[i]}ms ->`, res);
+                            }
+                        }}
+                        className="px-2 py-1 mt-1 bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20 transition-all uppercase text-[10px]"
+                     >
+                         TEST_SLA
+                     </button>
                 )}
             </div>
         </div>

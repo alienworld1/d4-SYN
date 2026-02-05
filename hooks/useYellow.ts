@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { YellowClient, YellowState } from '@/lib/yellow-client';
+import { YellowClient, YellowState, YellowSLAStats } from '@/lib/yellow-client';
 import { useSessionWallet } from './useSessionWallet';
 
 // Global singleton to persist connection across re-renders
@@ -60,6 +60,9 @@ export function useYellow() {
     client: globalClient,
     openChannel: async (provider: string) => globalClient?.openChannel(provider),
     pay: async (amount: number) => globalClient?.pay(amount),
+    payWithSLA: async (chunkId: number, baseRate: number) => globalClient?.payWithSLA(chunkId, baseRate),
+    getTelemetry: () => globalClient?.getTelemetry(),
+    eventBus: globalClient?.eventBus, 
     closeChannel: async () => globalClient?.closeChannel(),
     isConnected: state.status === 'connected' || state.status === 'active',
     isActive: state.status === 'active'
