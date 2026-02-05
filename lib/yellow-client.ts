@@ -8,7 +8,9 @@ import {
   createCloseChannelMessage,
   createTransferMessage,
   createGetLedgerBalancesMessage,
-  createEIP712AuthMessageSigner 
+  createEIP712AuthMessageSigner,
+  createGetConfigMessage,
+  createGetAssetsMessage
 } from '@erc7824/nitrolite';
 import { createWalletClient, createPublicClient, http, PrivateKeyAccount as ViemPrivateKeyAccount, hexToBigInt, Account, WalletClient, Transport, Chain, ParseAccount } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -23,6 +25,7 @@ export interface YellowState {
   balance: bigint; // In wei units (or whatever the token decimals are)
   channelId: string | null;
   provider: string | null;
+  address: string | null;
 }
 
 export class YellowClient {
@@ -45,12 +48,16 @@ export class YellowClient {
     status: 'disconnected',
     balance: BigInt(0),
     channelId: null,
-    provider: null
+    provider: null,
+    address: null
   };
 
   constructor(privateKey: string) {
     const formattedKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`;
     this.account = privateKeyToAccount(formattedKey as `0x${string}`);
+    
+    // Initialize address in state
+    this.internalState.address = this.account.address;
     
     // Setup Viem clients
     const publicClient = createPublicClient({ 
@@ -141,13 +148,13 @@ export class YellowClient {
       this.pendingRequests.set(id, { resolve, reject });
       this.send(msg);
       
-      // Timeout after 10s
+      // Timeout after 30s
       setTimeout(() => {
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
-          reject(new Error('Request timed out'));
+          reject(new Error(`Request ${id} timed out`));
         }
-      }, 10000);
+      }, 30000);
     });
   }
 
@@ -160,7 +167,7 @@ export class YellowClient {
         address: this.account.address,
         session_key: this.account.address,
         application: typeof window !== 'undefined' ? window.location.host : 'd4-syn-bot',
-        allowances: [],
+        allowances: [{asset: 'ytest.usd', amount: '1000000000'}],
         expires_at: BigInt(Math.floor(Date.now() / 1000) + 24 * 60 * 60), 
         scope: 'app'
       };
@@ -181,7 +188,7 @@ export class YellowClient {
     
     try {
       const msg = JSON.parse(data);
-      // console.log('[YELLOW] Recv:', msg); // Verbose logging
+      console.log('[YELLOW] Recv:', JSON.stringify(msg).substring(0, 200) + '...'); // Verbose logging for debugging
 
       // Unwrap Envelope
       const payload = msg.res || msg.req;
@@ -192,9 +199,16 @@ export class YellowClient {
         
         // Resolve pending request
         if (this.pendingRequests.has(id)) {
-          const { resolve } = this.pendingRequests.get(id)!;
+          const { resolve, reject } = this.pendingRequests.get(id)!;
           this.pendingRequests.delete(id);
-          resolve(result);
+          
+          if (method === 'error') {
+            const errorMsg = result && result.error ? result.error : JSON.stringify(result);
+            console.warn(`[YELLOW] RPC Error for Req ${id}:`, errorMsg);
+            reject(new Error(errorMsg));
+          } else {
+            resolve(result);
+          }
           return;
         }
       }
@@ -330,21 +344,18 @@ export class YellowClient {
         console.log('[YELLOW] Balances:', res);
         
         // Find our token
-        // Asset ID format: "chainId:tokenAddress" e.g. "11155111:0x..."
-        const assetId = `${sepolia.id}:${USDC_SEPOLIA_ADDRESS}`;
+        const assetId = 'ytest.usd';
         
-        // res might be array of {asset, amount} or object
-        // Based on other RPCs, likely an array of balances.
-        // Let's assume standard response structure.
-        
+        let balances: any[] = [];
         if (Array.isArray(res)) {
-            const tokenBal = res.find((b: any) => b.asset?.toLowerCase() === assetId.toLowerCase());
-            if (tokenBal) {
-                this.setState({ balance: BigInt(tokenBal.amount) });
-            }
-        } else if (res && typeof res === 'object') {
-             // Try to parse if it comes as a map
-             // ...
+            balances = res;
+        } else if (res && typeof res === 'object' && Array.isArray((res as any).ledger_balances)) {
+            balances = (res as any).ledger_balances;
+        }
+
+        const tokenBal = balances.find((b: any) => b.asset?.toLowerCase() === assetId.toLowerCase());
+        if (tokenBal) {
+            this.setState({ balance: BigInt(tokenBal.amount) });
         }
 
     } catch (err) {
@@ -369,17 +380,141 @@ export class YellowClient {
 
   // --- Core Actions ---
 
+  private async fetchRPCCall(creator: () => Promise<string>, name: string): Promise<any> {
+    try {
+        console.log(`[YELLOW] Requesting ${name}...`);
+        const msgStr = await creator();
+        
+        let msg: any;
+        try {
+            msg = JSON.parse(msgStr);
+        } catch (e) {
+            msg = msgStr;
+        }
+        
+        const req = msg.req || msg;
+        const id = Array.isArray(req) ? req[0] : null; 
+        
+        if (id === null || id === undefined) {
+             console.warn(`[YELLOW] Could not extract ID from ${name} message`);
+             this.send(msg);
+             return null;
+        }
+
+        return new Promise((resolve, reject) => {
+            this.pendingRequests.set(id, { 
+                resolve: (res) => {
+                    // Extract data from response structure if needed
+                    // Usually payload is in res[2]
+                    resolve(res);
+                }, 
+                reject 
+            });
+            this.send(msg);
+            
+            setTimeout(() => {
+                if (this.pendingRequests.has(id)) {
+                    this.pendingRequests.delete(id);
+                    console.warn(`[YELLOW] ${name} timed out`);
+                    resolve(null); 
+                }
+            }, 5000);
+        });
+    } catch (err) {
+        console.warn(`[YELLOW] Error preparing ${name} message`, err);
+        return null;
+    }
+  }
+
   public async openChannel(providerAddress: string) {
     if (this.internalState.status !== 'connected') {
         console.warn("Client not connected, attempting but might fail");
     }
 
     try {
-        console.log(`[YELLOW] Opening Channel (Real)`);
+        console.log(`[YELLOW] Discovering Assets...`);
         
+        let tokenAddress = '0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb'; // Updated Default fallback from logs
+        const chainId = sepolia.id;
+        
+        // 1. Fetch Assets using get_assets
+        try {
+            // Retrieve all assets (pass undefined for chainId to get all, or chainId to filter)
+            // Using a lambda to delay execution until needed
+            const assetsRes: any = await this.fetchRPCCall(
+                () => createGetAssetsMessage(this.messageSigner), 
+                'Assets'
+            );
+
+            if (assetsRes) {
+                 console.log('[YELLOW] Raw Assets Response:', JSON.stringify(assetsRes).substring(0, 500));
+                 
+                 let assetsList: any[] = [];
+                 
+                 // Case 1: Result is { assets: [...] } (Standard handled response where fetchRPCCall unwraps it)
+                 if (assetsRes && typeof assetsRes === 'object' && 'assets' in assetsRes && Array.isArray(assetsRes.assets)) {
+                     assetsList = assetsRes.assets;
+                 }
+                 // Case 2: Result is direct array [...]
+                 else if (Array.isArray(assetsRes)) {
+                     // Check if it looks like a raw envelope [id, method, payload, ...]
+                     // This happens if fetchRPCCall didn't unwrap correctly or handleMessage logic varied
+                     if (assetsRes.length >= 3 && typeof assetsRes[0] === 'number' && typeof assetsRes[1] === 'string') {
+                         const payload = assetsRes[2];
+                          if (payload && typeof payload === 'object' && 'assets' in payload && Array.isArray((payload as any).assets)) {
+                             assetsList = (payload as any).assets;
+                         } else if (Array.isArray(payload)) {
+                             assetsList = payload;
+                         }
+                     } else {
+                         // Assume it's the assets list itself
+                         assetsList = assetsRes;
+                     }
+                 }
+                 
+                 if (assetsList.length > 0) {
+                     console.log(`[YELLOW] Found ${assetsList.length} assets from RPC`);
+                     // Filter for Sepolia (11155111) and USDC (ytest.usd implies USDC usually)
+                     // or look for our known address
+                     
+                     const asset = assetsList.find((a: any) => {
+                         // Check chain
+                         const cId = Number(a.chain_id);
+                         if (cId !== chainId) return false;
+                         
+                         // Check symbol (ytest.usd or usdc)
+                         // Or just match ANY valid asset for this chain for now?
+                         // Prefer 'ytest.usd' or 'usdc'
+                         const sym = a.asset || a.symbol;
+                         return sym?.toLowerCase().includes('usd');
+                     });
+
+                     if (asset) {
+                         console.log(`[YELLOW] Found matching asset: ${JSON.stringify(asset)}`);
+                         if (asset.token) {
+                             tokenAddress = asset.token;
+                         } else if (asset.address) {
+                             tokenAddress = asset.address;
+                         }
+                     } else {
+                         console.warn(`[YELLOW] No USDC-like asset found for chain ${chainId}. Available:`, assetsList.map((a: any) => `${a.symbol}(${a.chain_id})`));
+                     }
+                 } else {
+                     console.warn('[YELLOW] Assets list empty or unparseable');
+                 }
+            }
+        } catch (e) {
+            console.warn('[YELLOW] Asset fetch failed', e);
+        }
+
+        console.log(`[YELLOW] Using Configured Token Address: ${tokenAddress}`);
+
+        console.log(`[YELLOW] Opening Channel (Real) with token: ${tokenAddress}`);
+        
+        // Use Checksummed Address (remove .toLowerCase()) as per yellow-example.md
         const response = await this.request((id) => createCreateChannelMessage(this.messageSigner, {
-            chain_id: sepolia.id,
-            token: USDC_SEPOLIA_ADDRESS as `0x${string}`,
+            chain_id: chainId,
+            token: tokenAddress as `0x${string}`, 
         }, id));
 
         // Expect response to contain channel_id
@@ -394,8 +529,12 @@ export class YellowClient {
             status: 'active', 
             channelId: channelId,
             provider: providerAddress, // Mapped for application logic
-            balance: BigInt(0) 
+            // Preserve existing balance (from refreshBalance), or if null/0, try to fetch again
+            balance: this.internalState.balance > 0n ? this.internalState.balance : BigInt(0) 
         });
+
+        // Trigger a background balance refresh just in case
+        this.refreshBalance();
 
         return channelId;
 
@@ -423,7 +562,7 @@ export class YellowClient {
 
     try {
         // Send Transform/Transfer Message
-        const asset = `${sepolia.id}:${USDC_SEPOLIA_ADDRESS}`;
+        const asset = 'ytest.usd';
         
         // FIRE AND FORGET: Do not await the response for high-frequency streams
         // We generate the ID manually if needed, or let createTransferMessage default (but we need unique IDs for tracking if we cared)
@@ -450,14 +589,26 @@ export class YellowClient {
     if (!this.internalState.channelId) return;
 
     try {
-        console.log('[YELLOW] Closing Channel');
+        console.log('[YELLOW] Closing Channel', this.internalState.channelId);
         
-        await this.request((id) => createCloseChannelMessage(
-            this.messageSigner, 
-            this.internalState.channelId as `0x${string}`, 
-            this.account.address,
-            id
-        ));
+        // We attempt to close the channel on Clearnode
+        // Note: If we haven't funded it on-chain, this might return "not found" or similar errors.
+        // We will catch and ignore them to allow the UI to reset cleanly.
+        try {
+            await this.request((id) => createCloseChannelMessage(
+                this.messageSigner, 
+                this.internalState.channelId as `0x${string}`, 
+                this.account.address,
+                id
+            ));
+        } catch (requestErr) {
+            const errMsg = (requestErr as any)?.message || String(requestErr);
+            if (errMsg.includes('not found') || errMsg.includes('token not supported')) {
+                 console.warn('[YELLOW] Channel close returned error (ignoring for reset):', errMsg);
+            } else {
+                 throw requestErr;
+            }
+        }
         
         this.setState({ 
             status: 'connected', 
@@ -467,6 +618,12 @@ export class YellowClient {
 
     } catch (err) {
         console.error('[YELLOW] Close Failed', err);
+        // Force state reset even if network call failed
+        this.setState({ 
+            status: 'connected', 
+            channelId: null, 
+            provider: null 
+        });
     }
   }
 }

@@ -127,9 +127,23 @@ export function FuelGauge() {
           {/* Status Light */}
           <div className={`absolute top-2 right-2 w-2 h-2 rounded-full ${isReady ? 'bg-terminal' : 'bg-synapse'}`} />
 
-          <div className="text-[10px] text-gray-500 mb-1">ADDRESS</div>
-          <div className="text-discovery text-xs truncate mb-3">
-            {sessionAddress || "INITIALIZING..."}
+          <div className="flex items-center justify-between mb-3">
+             <div className="text-discovery text-[10px] break-all">
+                {sessionAddress || "INITIALIZING..."}
+             </div>
+             {sessionAddress && (
+                 <button 
+                    onClick={() => navigator.clipboard.writeText(sessionAddress)}
+                    className="ml-2 text-[10px] border border-gray-700 px-1 hover:text-white"
+                 >
+                    CPY
+                 </button>
+             )}
+          </div>
+
+          <div className="mb-3 p-2 border border-yellow-900/50 bg-yellow-900/10 text-yellow-500/80 text-[10px]">
+             ⚠ <strong>JUDGES INFO:</strong> This burner wallet requires <strong>ytest.usd</strong>. 
+             If direct injection fails, please fund via the <a href="https://faucet.yellow.network/" target="_blank" className="underline hover:text-yellow-400">Yellow Faucet</a>.
           </div>
 
           <div className="grid grid-cols-2 gap-2">

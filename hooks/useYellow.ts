@@ -13,7 +13,8 @@ export function useYellow() {
     status: 'disconnected',
     balance: BigInt(0),
     channelId: null,
-    provider: null
+    provider: null,
+    address: null
   });
 
   useEffect(() => {

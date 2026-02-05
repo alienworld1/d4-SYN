@@ -47,6 +47,26 @@ export function YellowMonitor() {
             </div>
         )}
 
+        {state.address && (
+          <div className="mb-4 p-2 bg-black/40 border border-grid/50 rounded">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] opacity-40">BURNER_WALLET</span>
+              <button 
+                onClick={() => navigator.clipboard.writeText(state.address!)}
+                className="text-[10px] text-synapse hover:underline uppercase"
+              >
+                [COPY]
+              </button>
+            </div>
+            <div className="font-mono text-[10px] break-all opacity-80 text-gray-300">
+              {state.address}
+            </div>
+            <div className="mt-2 text-[9px] text-warn opacity-80 leading-tight">
+              ! FUND WITH YTEST.USD VIA FAUCET !
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between items-end border-t border-dashed border-grid pt-3">
             <div>
                  <span className="opacity-50 block text-[10px] mb-1">STREAM_ALLOCATION</span>

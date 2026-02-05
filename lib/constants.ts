@@ -1,5 +1,4 @@
 export const USDC_SEPOLIA_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238";
-
 export const YELLOW_RPC_URL = process.env.NEXT_PUBLIC_YELLOW_RPC || "wss://clearnet-sandbox.yellow.com/ws";
 export const MOCK_YELLOW = process.env.NEXT_PUBLIC_MOCK_YELLOW === "true";
 
