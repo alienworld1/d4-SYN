@@ -3,7 +3,6 @@
 import { Shell } from "@/components/layout/Shell";
 import { SplitPane } from "@/components/layout/SplitPane";
 import { Panel } from "@/components/ui/Panel";
-import { FuelGauge } from "@/components/session/FuelGauge";
 import { YellowMonitor } from "@/components/session/YellowMonitor";
 import { BrainConsole } from "@/components/brain/BrainConsole";
 import { AgentOrderBook } from "@/components/brain/AgentOrderBook";
@@ -44,8 +43,7 @@ export default function Home() {
               </div>
 
               {/* FUEL & PAYMENT RAIL */}
-              <div className="grid grid-cols-2 gap-4 shrink-0">
-                 <FuelGauge />
+              <div className="shrink-0 mb-4">
                  <YellowMonitor />
               </div>
 

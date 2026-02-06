@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useYellow } from "@/hooks/useYellow";
 import { Ticker } from "@/components/ui/Ticker";
 import { Badge } from "@/components/ui/Badge";
@@ -53,7 +54,12 @@ export function YellowMonitor() {
         <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-synapse to-transparent opacity-20" />
 
         <div className="flex justify-between items-center mb-4">
-            <span className="opacity-50 uppercase tracking-widest text-[10px]">Nitrolite Uplink</span>
+            <div className="flex items-center gap-4">
+                <span className="opacity-50 uppercase tracking-widest text-[10px]">Nitrolite Uplink</span>
+                <div className="scale-75 origin-left opacity-80 hover:opacity-100 transition-opacity [&_button]:font-mono! [&_button]:rounded-none!">
+                    <ConnectButton showBalance={false} chainStatus="none" accountStatus="address" />
+                </div>
+            </div>
             <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${state.status === 'active' ? 'bg-synapse shadow-[0_0_8px_var(--color-synapse)]' : 'bg-gray-700'}`} />
                 <Badge variant={state.status === 'active' ? 'warn' : 'cold'} animate={state.status === 'active'}>
