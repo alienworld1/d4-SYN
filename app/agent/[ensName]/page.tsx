@@ -153,7 +153,7 @@ export default function AgentProfilePage({ params }: { params: { ensName: string
                                         <div className="space-y-1">
                                             <div className="text-xs text-gray-500 font-mono">CURRENT PRICE</div>
                                             <div className="text-3xl font-bold font-mono text-data">
-                                                ${providerMeta?.lastKnownPrice || '0.000'}
+                                                {providerMeta?.lastKnownPrice !== null && providerMeta?.lastKnownPrice !== undefined ? `$${providerMeta.lastKnownPrice}` : 'N/A'}
                                             </div>
                                             <div className="text-xs text-gray-600">USDC / TOKEN</div>
                                         </div>

@@ -37,7 +37,7 @@ export default function RegistryPage() {
     // Sort providers
     const sortedProviders = [...brainProviders].sort((a, b) => {
         if (sortBy === 'trust') return b.trustScore - a.trustScore;
-        if (sortBy === 'price') return a.lastKnownPrice - b.lastKnownPrice; // Ascending for price
+        if (sortBy === 'price') return (a.lastKnownPrice || 0) - (b.lastKnownPrice || 0); // Ascending for price, nulls treated as 0
         if (sortBy === 'bond') return Number(b.bondAmount) - Number(a.bondAmount);
         return 0;
     });
@@ -138,7 +138,9 @@ export default function RegistryPage() {
                                         <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-4 border-t border-gray-800">
                                             <div>
                                                 <div className="text-gray-600 mb-0.5">PRICE</div>
-                                                <div className="text-data">${provider.lastKnownPrice}</div>
+                                                <div className="text-data">
+                                                    {provider.lastKnownPrice !== null ? `$${provider.lastKnownPrice}` : 'N/A'}
+                                                </div>
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-gray-600 mb-0.5">BOND</div>

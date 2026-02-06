@@ -33,7 +33,7 @@ export interface Provider {
   trustScore: number;
   
   // Real-time state
-  lastKnownPrice: number;
+  lastKnownPrice: number | null;
   status: 'online' | 'offline' | 'active';
 }
 
@@ -248,15 +248,44 @@ export class AgentBrain extends EventTarget {
         }
 
         // 2. Parallel fetch of Text Records directly from Resolver
-        const [endpoint, paymentAddr, bondAddr] = await Promise.all([
+        const [endpoint, paymentAddr, bondAddr, rateStr] = await Promise.all([
             this.publicClient.readContract({ address: resolverAddr, abi: RESOLVER_ABI, functionName: 'text', args: [node, 'd4.endpoint'] }),
             this.publicClient.readContract({ address: resolverAddr, abi: RESOLVER_ABI, functionName: 'text', args: [node, 'd4.payment'] }),
             this.publicClient.readContract({ address: resolverAddr, abi: RESOLVER_ABI, functionName: 'text', args: [node, 'd4.bond'] }),
-        ]) as [string, string, string];
+            this.publicClient.readContract({ address: resolverAddr, abi: RESOLVER_ABI, functionName: 'text', args: [node, 'd4.rate'] }),
+        ]) as [string, string, string, string];
 
         if (!endpoint || !paymentAddr) {
              this.log('WARN', `Skipping ${ensName}: Missing metadata`);
              return null;
+        }
+
+        // Fetch Live Price (Step 1: API, Step 2: d4.rate, Step 3: null)
+        let finalPrice: number | null = null;
+        
+        // Try Live API first
+        try {
+            const cleanUrl = endpoint.replace(/\/$/, "");
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s timeout
+            
+            const res = await fetch(`${cleanUrl}/price`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data && typeof data.price === 'number') {
+                    finalPrice = data.price;
+                }
+            }
+        } catch (e) {
+            // API failed, silent ignore
+        }
+
+        // Fallback to ENS rate
+        if (finalPrice === null && rateStr) {
+             const parsed = parseFloat(rateStr);
+             if (!isNaN(parsed)) finalPrice = parsed;
         }
 
         // Fetch Bond Data (On-Chain)
@@ -295,7 +324,7 @@ export class AgentBrain extends EventTarget {
             bondAge: effectiveAge,
             isUnbonding,
             trustScore,
-            lastKnownPrice: 0,
+            lastKnownPrice: finalPrice,
             status: isUnbonding ? 'offline' : 'online'
         };
 
