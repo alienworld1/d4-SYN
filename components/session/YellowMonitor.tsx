@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useYellow } from "@/hooks/useYellow";
+import { Ticker } from "@/components/ui/Ticker";
+import { Badge } from "@/components/ui/Badge";
 
 export function YellowMonitor() {
   const { state, openChannel, closeChannel, pay, payWithSLA, eventBus, getTelemetry } = useYellow();
@@ -54,9 +56,9 @@ export function YellowMonitor() {
             <span className="opacity-50 uppercase tracking-widest text-[10px]">Nitrolite Uplink</span>
             <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${state.status === 'active' ? 'bg-synapse shadow-[0_0_8px_var(--color-synapse)]' : 'bg-gray-700'}`} />
-                <span className={`uppercase font-bold ${statusColor} tracking-widest`}>
+                <Badge variant={state.status === 'active' ? 'warn' : 'cold'} animate={state.status === 'active'}>
                     [{state.status.toUpperCase()}]
-                </span>
+                </Badge>
             </div>
         </div>
 
@@ -95,9 +97,10 @@ export function YellowMonitor() {
 
         <div className="flex justify-between items-end border-t border-dashed border-grid pt-3">
             <div>
-                 <span className="opacity-50 block text-[10px] mb-1">STREAM_ALLOCATION</span>
-                 <div className="text-3xl font-bold text-synapse font-sans tracking-tighter tabular-nums leading-none drop-shadow-[0_0_5px_rgba(255,234,0,0.3)]">
-                    {displayBalance}<span className="text-xs opacity-50 ml-1 font-mono">USDC</span>
+                 <span className="opacity-50 block text-[10px] mb-1 font-sans font-bold">STREAM_ALLOCATION</span>
+                 <div className="text-3xl font-bold text-synapse font-sans tracking-tighter leading-none drop-shadow-[0_0_5px_rgba(255,234,0,0.3)] flex items-baseline">
+                    <Ticker value={displayBalance} />
+                    <span className="text-xs opacity-50 ml-1 font-mono">USDC</span>
                  </div>
                  {slaMessage && (
                      <div className="text-[10px] text-warn font-bold animate-pulse mt-1 bg-black/50 px-1 border-l-2 border-warn">

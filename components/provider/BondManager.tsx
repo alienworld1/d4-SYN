@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useServiceBond } from "@/hooks/useServiceBond";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export function BondManager() {
@@ -28,11 +30,9 @@ export function BondManager() {
   };
 
   return (
-    <div className="flex flex-col h-full border border-grid bg-void/80 p-6 relative">
+    <Panel className="h-full relative overflow-visible" title="CAPITAL_CONSOLE::BOND">
       {/* Decorative Corner */}
-      <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-idle opacity-50"/>
-
-      <h2 className="text-xl font-bold text-idle tracking-widest mb-6">CAPITAL_CONSOLE::BOND</h2>
+      <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-idle opacity-50 z-20"/>
 
       <div className="grid grid-cols-2 gap-0 mb-8 border-b border-grid">
         <button
@@ -55,40 +55,37 @@ export function BondManager() {
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center">
+      <div className="flex-1 flex flex-col justify-center p-6">
         {activeTab === "deposit" && (
           <div className="space-y-8 animate-in fade-in duration-300">
              <div className="space-y-2">
-                <label className="text-xs text-gray-500 uppercase tracking-widest">Stake Amount (ETH)</label>
+                <label className="text-xs text-gray-500 uppercase tracking-widest font-sans font-bold">Stake Amount (ETH)</label>
                 <div className="relative">
                   <input
                     type="number"
                     value={inputAmount}
                     onChange={(e) => setInputAmount(e.target.value)}
                     disabled={isUnbonding || isLoading}
-                    className="w-full bg-void border-b border-idle text-4xl font-mono text-idle focus:outline-none focus:border-white py-2"
+                    className="w-full bg-void border-b border-idle text-4xl font-mono text-idle focus:outline-none focus:border-white py-2 placeholder-idle/30"
                     placeholder="0.0"
                   />
-                  <span className="absolute right-0 bottom-4 text-xs text-idle/50">ETH</span>
+                  <span className="absolute right-0 bottom-4 text-xs text-idle/50 font-mono">ETH</span>
                 </div>
              </div>
 
              <div className="text-center">
                {!isLoading && (
-                 <button
+                 <Button
                    onClick={handleDeposit}
                    disabled={isUnbonding}
-                   className={`
-                     w-full py-4 text-lg font-bold tracking-widest border border-idle
-                     hover:bg-idle hover:text-void transition-all
-                     disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-idle
-                   `}
+                   variant="idle"
+                   className="w-full py-4 text-lg font-bold tracking-widest"
                  >
                    {isUnbonding ? "LOCKED (UNBONDING)" : "[ EXECUTE STAKE ]"}
-                 </button>
+                 </Button>
                )}
                {isLoading && (
-                 <div className="text-idle animate-pulse font-mono tracking-widest">
+                 <div className="text-idle animate-pulse font-mono tracking-widest py-4">
                    PROCESSING ON-CHAIN...
                  </div>
                )}
@@ -110,19 +107,20 @@ export function BondManager() {
             ) : (
               <div className="space-y-6">
                  {bondState === "ACTIVE" && (
-                    <button
+                    <Button
                       onClick={() => initiateExit()}
                       disabled={isLoading}
-                      className="w-full py-6 text-xl text-heat border border-heat hover:bg-heat hover:text-void transition-all tracking-widest font-bold"
+                      variant="heat"
+                      className="w-full py-6 text-xl tracking-widest font-bold"
                     >
                       {isLoading ? "PROCESSING..." : "[ INITIATE EXIT ]"}
-                    </button>
+                    </Button>
                  )}
 
                  {isUnbonding && (
                    <div className="text-center space-y-4">
-                     <div className="text-xs text-heat uppercase tracking-widest animate-pulse">Unbonding in Progress</div>
-                     <div className="text-6xl font-mono text-heat">
+                     <div className="text-xs text-heat uppercase tracking-widest animate-pulse font-sans font-bold">Unbonding in Progress</div>
+                     <div className="text-6xl font-mono text-heat tracking-tighter">
                        00:{countdown.toString().padStart(2, '0')}
                      </div>
                      <div className="text-xs text-gray-500">Capital Lock Active</div>
@@ -130,13 +128,14 @@ export function BondManager() {
                  )}
 
                  {isUnbonded && (
-                    <button
+                    <Button
                       onClick={() => finalizeExit()}
                       disabled={isLoading}
-                      className="w-full py-6 text-xl text-white border border-white hover:bg-white hover:text-black transition-all tracking-widest font-bold"
+                      variant="idle"
+                      className="w-full py-6 text-xl tracking-widest font-bold"
                     >
                       {isLoading ? "WITHDRAWING..." : "[ WITHDRAW FUNDS ]"}
-                    </button>
+                    </Button>
                  )}
               </div>
             )}
@@ -156,6 +155,6 @@ export function BondManager() {
            </div>
         </div>
       </div>
-    </div>
+    </Panel>
   );
 }

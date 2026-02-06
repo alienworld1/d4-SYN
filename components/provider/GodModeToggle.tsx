@@ -1,4 +1,6 @@
 import { useState } from "react";
+// No import for Button or Panel since this is a small widget, but let's see styling.
+// "border border-grid bg-void/50 p-6" -> Candidate for Panel.
 
 export function GodModeToggle() {
   const [conjest, setConjest] = useState(false);
@@ -33,26 +35,27 @@ export function GodModeToggle() {
 
   return (
     <div className="border border-grid bg-void/50 p-6">
-      <h3 className="text-xs font-bold text-gray-500 tracking-widest mb-4">GOD_MODE::SIMULATION</h3>
+      <h3 className="text-xs font-bold text-gray-500 tracking-widest mb-4 font-sans uppercase">GOD_MODE::SIMULATION</h3>
       
       <div className="flex items-center justify-between">
-         <span className={`text-sm tracking-widest ${conjest ? 'text-heat animate-pulse' : 'text-gray-400'}`}>
+         <span className={`text-sm tracking-widest font-mono ${conjest ? 'text-heat animate-pulse' : 'text-gray-400'}`}>
            {conjest ? "CONGESTION: HIGH" : "CONGESTION: NOMINAL"}
          </span>
 
+         {/* Custom Toggle Switch - keeping manual style as it's unique */}
          <button
            onClick={toggleCongestion}
            disabled={loading}
            className={`
-             relative w-12 h-6 rounded-full transition-colors duration-200 ease-in-out border
-             ${conjest ? 'bg-heat/20 border-heat' : 'bg-void border-gray-600'}
-             disabled:opacity-50
+             relative w-12 h-6 transition-colors duration-200 ease-in-out border
+             ${conjest ? 'bg-heat/20 border-heat shadow-[0_0_10px_rgba(255,42,0,0.3)]' : 'bg-void border-gray-600'}
+             disabled:opacity-50 focus:outline-none
            `}
          >
            <span
              className={`
-               block w-4 h-4 m-1 rounded-full transition-transform duration-200 ease-in-out
-               ${conjest ? 'translate-x-6 bg-heat' : 'translate-x-0 bg-gray-600'}
+               block w-3 h-3 m-1 transition-transform duration-200 ease-in-out
+               ${conjest ? 'translate-x-6 bg-heat shadow-glow-heat' : 'translate-x-0 bg-gray-600'}
              `}
            />
          </button>

@@ -1,28 +1,51 @@
 @import "tailwindcss";
 
-:root {
-  /* The Void (Base) */
-  --color-void: #050505;
-  --color-void-light: #0A0A0A;
+@theme {
+  /* COLORS */
+  --color-void: #050505;       /* OLED Black */
+  --color-grid: #1A1A1A;       /* Structure */
+  --color-idle: #00FF41;       /* Matrix Green (Safe) */
+  --color-heat: #FF2A00;       /* Infrared (Danger/Spike) */
+  --color-warn: #FFB000;       /* Amber (Transition) */
+  --color-data: #00F3FF;       /* Cyan (Stream) */
+  --color-cold: #4D4D4D;       /* Disabled/Static */
 
-  /* Signals */
-  --color-synapse: #FFEA00;  /* Payment / Active */
-  --color-discovery: #00F3FF; /* ENS / Data */
-  --color-terminal: #0AFF60;  /* Success / Idle */
-  --color-error: #FF0055;     /* Cost / Critical */
-}
-
-@theme inline {
-  --color-void: var(--color-void);
-  --color-void-light: var(--color-void-light);
-  --color-synapse: var(--color-synapse);
-  --color-discovery: var(--color-discovery);
-  --color-terminal: var(--color-terminal);
-  --color-error: var(--color-error);
-  
+  /* FONTS */
   --font-mono: var(--font-jetbrains-mono);
+  --font-sans: var(--font-inter); /* Spec said Inter */
+
+  /* ANIMATIONS */
+  --animate-glitch: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
+  --animate-scan: scan 4s linear infinite;
 }
 
+/* UTILITIES */
+@layer utilities {
+  .text-glow-idle { text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+  .text-glow-heat { text-shadow: 0 0 10px rgba(255, 42, 0, 0.5); }
+  .border-glow-idle { box-shadow: 0 0 5px rgba(0, 255, 65, 0.3); }
+
+  /* Custom Scrollbar */
+  .scrollbar-custom::-webkit-scrollbar { width: 6px; }
+  .scrollbar-custom::-webkit-scrollbar-thumb { background: var(--color-grid); }
+  .scrollbar-custom::-webkit-scrollbar-track { background: var(--color-void); }
+}
+
+@keyframes glitch {
+  0% { transform: translate(0) }
+  20% { transform: translate(-2px, 2px) }
+  40% { transform: translate(-2px, -2px) }
+  60% { transform: translate(2px, 2px) }
+  80% { transform: translate(2px, -2px) }
+  100% { transform: translate(0) }
+}
+
+@keyframes scan {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 0% 100%; }
+}
+
+/* GLOBAL RESET */
 body {
   background-color: var(--color-void);
   color: #cccccc;
@@ -30,37 +53,6 @@ body {
   overflow: hidden; /* App-like feel */
   height: 100vh;
   width: 100vw;
-}
-
-/* Utilities for the Spec */
-@utility scanlines {
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 2px,
-    rgba(0, 0, 0, 0.3) 3px
-  );
-  pointer-events: none;
-  z-index: 50;
-}
-
-@utility noise-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.05;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  z-index: 40;
-}
-
-@utility glitch-text {
-  text-shadow: 2px 0 var(--color-error), -2px 0 var(--color-discovery);
-}
-
-@utility glow-text-synapse {
-  text-shadow: 0 0 10px var(--color-synapse);
-}
-
-@utility glow-text-discovery {
-  text-shadow: 0 0 10px var(--color-discovery);
+  margin: 0;
+  padding: 0;
 }

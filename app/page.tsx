@@ -2,7 +2,7 @@
 
 import { Shell } from "@/components/layout/Shell";
 import { SplitPane } from "@/components/layout/SplitPane";
-import { Pane } from "@/components/layout/Pane";
+import { Panel } from "@/components/ui/Panel";
 import { FuelGauge } from "@/components/session/FuelGauge";
 import { YellowMonitor } from "@/components/session/YellowMonitor";
 import { BrainConsole } from "@/components/brain/BrainConsole";
@@ -25,37 +25,37 @@ export default function Home() {
     <Shell>
       <SplitPane
         left={
-          <Pane title={`HUMAN_OUTPUT::RENDER [${status}]`}>
+          <Panel title={`HUMAN_OUTPUT::RENDER [${status}]`} className="h-full border-r-0 border-l-0 border-t-0 border-b-0">
             <BrainConsole 
               status={status} 
               content={streamContent} 
               onStart={start} 
               onStop={stop} 
             />
-          </Pane>
+          </Panel>
         }
         right={
-          <Pane title="MACHINE_MIND::LOGS">
-            <div className="flex flex-col gap-6 h-full">
+          <Panel title="MACHINE_MIND::LOGS" className="h-full border-r-0 border-l-0 border-t-0 border-b-0">
+            <div className="flex flex-col gap-6 h-full p-4">
               {/* MARKET OVERVIEW */}
-              <div>
-                <div className="text-[10px] opacity-40 mb-2 uppercase tracking-widest">Global Order Book</div>
+              <div className="shrink-0">
+                <div className="text-[10px] opacity-40 mb-2 uppercase tracking-widest font-sans font-bold text-idle">Global Order Book</div>
                 <AgentOrderBook providers={providers} activeProvider={activeProvider} />
               </div>
 
               {/* FUEL & PAYMENT RAIL */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 shrink-0">
                  <FuelGauge />
                  <YellowMonitor />
               </div>
 
               {/* MODULE 5: SYSTEM LOGS */}
-              <div className="flex-1 min-h-0 border-t border-[#333] pt-4 flex flex-col">
-                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-widest">System_Event_Stream</div>
+              <div className="flex-1 min-h-0 border-t border-grid border-dashed pt-4 flex flex-col">
+                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-widest font-sans font-bold">System_Event_Stream</div>
                 <TerminalLogs logs={logs} />
               </div>
             </div>
-          </Pane>
+          </Panel>
         }
       />
     </Shell>

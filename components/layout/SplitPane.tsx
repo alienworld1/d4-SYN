@@ -58,14 +58,14 @@ export function SplitPane({ left, right }: SplitPaneProps) {
       <div
         className={`
           hidden md:block
-          w-0.5 h-full cursor-col-resize z-30 transition-colors duration-150
-          ${isDragging ? "bg-synapse shadow-[0_0_10px_var(--color-synapse)]" : "bg-[#333] hover:bg-discovery hover:shadow-[0_0_10px_var(--color-discovery)]"}
+          w-px h-full cursor-col-resize z-30 transition-colors duration-150
+          ${isDragging ? "bg-synapse shadow-[0_0_10px_var(--color-synapse)]" : "bg-grid hover:bg-discovery hover:shadow-[0_0_10px_var(--color-discovery)]"}
         `}
         onMouseDown={startDrag}
       />
 
       {/* Mobile Divider (Horizontal) - Static for MVP */}
-      <div className="md:hidden h-px w-full bg-[#333]" />
+      <div className="md:hidden h-px w-full bg-grid" />
 
       {/* Right Pane (Machine Mind) */}
       <div className="flex-1 h-1/2 md:h-full overflow-hidden">

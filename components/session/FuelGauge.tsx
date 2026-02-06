@@ -91,12 +91,12 @@ export function FuelGauge() {
   const displayUsdc = usdcBalance ? parseFloat(formatUnits(usdcBalance as bigint, 6)).toFixed(2) : "0.00";
 
   return (
-    <div className="flex flex-col gap-4 p-4 border border-[#333] bg-[#0A0A0A]/50 font-mono text-xs">
+    <div className="flex flex-col gap-4 p-4 border border-grid bg-void/50 font-mono text-xs">
       
       {/* HEADER */}
-      <div className="flex justify-between items-center border-b border-[#333] pb-2 mb-2">
-        <span className="text-gray-500 tracking-widest">POWER_MANAGEMENT</span>
-        <div className="text-[10px] text-gray-600">SEP_NET</div>
+      <div className="flex justify-between items-center border-b border-grid pb-2 mb-2">
+        <span className="text-gray-500 tracking-widest font-sans font-bold">POWER_MANAGEMENT</span>
+        <div className="text-[10px] text-gray-600 font-mono">SEP_NET</div>
       </div>
 
       {/* MAINFRAME CONNECTION */}
@@ -176,15 +176,15 @@ export function FuelGauge() {
         className={`
           mt-2 relative w-full py-3 px-4 
           border text-center uppercase tracking-widest font-bold text-sm
-          transition-all duration-150
+          glitch-border transition-all duration-150
           ${
             !mainAddress 
               ? 'border-gray-800 text-gray-600 bg-transparent cursor-not-allowed'
               : isFueling
-                ? 'border-synapse text-synapse bg-synapse/10 cursor-wait'
+                ? 'border-synapse text-synapse bg-synapse/10 cursor-wait shadow-glow-text-synapse'
                 : isReady 
-                 ? 'border-terminal text-terminal bg-terminal/10 cursor-default opacity-50' 
-                 : 'border-synapse hover:bg-synapse hover:text-black text-synapse cursor-pointer'
+                 ? 'border-idle text-idle bg-idle/10 cursor-default opacity-50' 
+                 : 'border-synapse hover:bg-synapse hover:text-black text-synapse cursor-pointer shadow-[0_0_10px_rgba(255,234,0,0.2)]'
           }
         `}
       >
