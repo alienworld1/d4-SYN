@@ -21,7 +21,7 @@ const BOND_ABI = [
 
 // --- Types ---
 
-export type BrainStatus = 'IDLE' | 'DISCOVERING' | 'NEGOTIATING' | 'STREAMING' | 'SWITCHING' | 'COMPLETED' | 'ERROR';
+export type BrainStatus = 'IDLE' | 'THINKING' | 'ACTING' | 'DISCOVERING' | 'NEGOTIATING' | 'STREAMING' | 'SWITCHING' | 'COMPLETED' | 'ERROR';
 
 export interface Provider {
   ensName: string;
@@ -39,7 +39,7 @@ export interface Provider {
 
 export type BrainLog = {
   timestamp: number;
-  type: 'INFO' | 'WARN' | 'ERROR' | 'ARB' | 'YEL' | 'ENS';
+  type: 'INFO' | 'WARN' | 'ERROR' | 'ARB' | 'YEL' | 'ENS' | 'THOUGHT' | 'OP' | 'DATA';
   message: string;
 };
 
@@ -96,17 +96,67 @@ export class AgentBrain extends EventTarget {
     }
   }
 
-  public stop() {
-    this.abortCurrentStream();
-    this.yellow?.closeChannel().catch(console.error);
-    this.setStatus('IDLE');
-    this.log('INFO', 'Brain stopped manually.');
+  // --- Public Tools for Cognitive Mode ---
+
+  public async searchRegistry(category: string = 'finance'): Promise<string[]> {
+      this.log('ENS', `Tool: Searching registry for '${category}'...`);
+      try {
+        const node = namehash(normalize(REGISTRY_DOMAIN));
+        
+        // 1. Get Resolver
+        const resolverAddr = await this.publicClient.readContract({
+            address: ENS_REGISTRY_ADDRESS,
+            abi: RESOLVER_ABI,
+            functionName: 'resolver',
+            args: [node]
+        });
+
+        if (resolverAddr === '0x0000000000000000000000000000000000000000') {
+              throw new Error(`No resolver set for ${REGISTRY_DOMAIN}`);
+        }
+
+        // 2. Get Text (Dynamic key based on category)
+        const key = `d4.list.${category}`;
+        const listString = await this.publicClient.readContract({
+            address: resolverAddr as `0x${string}`,
+            abi: RESOLVER_ABI,
+            functionName: 'text',
+            args: [node, key]
+        }) as string;
+
+        if (!listString) return [];
+        return listString.split(',').map(s => s.trim()).filter(Boolean);
+      } catch (e: any) {
+        this.log('ERROR', `Registry Search Failed: ${e.message}`);
+        return [];
+      }
+  }
+
+  public async inspectProvider(ensName: string): Promise<Provider | null> {
+      this.log('ENS', `Tool: Inspecting ${ensName}...`);
+      return this.resolveProvider(ensName);
+  }
+
+  public async hireProvider(ensName: string, prompt: string) {
+       this.log('OP', `Tool: Hiring ${ensName}...`);
+       // Find or resolve
+       let provider: Provider | null | undefined = this.providers.find(p => p.ensName === ensName);
+       if (!provider) {
+           provider = await this.resolveProvider(ensName);
+           if (!provider) throw new Error(`Could not resolve ${ensName}`);
+       }
+       
+       // Force set active and connect
+       await this.connectAndStream(provider, prompt);
+       return { status: 'streaming_started', provider };
   }
 
   // --- Core Logic ---
 
   private async discoverProviders() {
     this.log('ENS', `Querying registry: ${REGISTRY_DOMAIN}`);
+    // ... existing implementation simplified to use new tool?
+    // For now, keep existing logic to avoid breaking Module 6-7, but exposing tools above is strictly additive.
     
     try {
         let listString = '';
@@ -421,7 +471,7 @@ export class AgentBrain extends EventTarget {
       this.emitUpdate();
   }
 
-  private log(type: BrainLog['type'], message: string) {
+  public log(type: BrainLog['type'], message: string) {
       const entry = { timestamp: Date.now(), type, message };
       this.logs.push(entry);
       // Keep log size sane
@@ -432,6 +482,13 @@ export class AgentBrain extends EventTarget {
       this.dispatchEvent(event);
       
       console.log(`[BRAIN:${type}] ${message}`);
+  }
+
+  public stop() {
+    this.abortCurrentStream();
+    this.yellow?.closeChannel().catch(console.error);
+    this.setStatus('IDLE');
+    this.log('INFO', 'Brain stopped manually.');
   }
 
   private emitUpdate() {

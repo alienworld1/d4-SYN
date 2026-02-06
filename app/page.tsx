@@ -6,7 +6,8 @@ import { YellowMonitor } from "@/components/session/YellowMonitor";
 import { BrainConsole } from "@/components/brain/BrainConsole";
 import { AgentOrderBook } from "@/components/brain/AgentOrderBook";
 import { TerminalLogs } from "@/components/brain/TerminalLogs";
-import { useAgentBrain } from "@/hooks/useAgentBrain";
+// import { useAgentBrain } from "@/hooks/useAgentBrain";
+import { useCognitiveAgent } from "@/hooks/useCognitiveAgent";
 import { useYellow } from "@/hooks/useYellow";
 import { RollingTicker } from "@/components/ui/RollingTicker";
 
@@ -19,7 +20,7 @@ export default function Home() {
     providers, 
     activeProvider,
     logs 
-  } = useAgentBrain();
+  } = useCognitiveAgent();
   
   const { state: yellowState } = useYellow();
 
@@ -53,21 +54,21 @@ export default function Home() {
            {/* MAIN GRID */}
            <div className="flex-1 flex overflow-hidden">
                {/* COL 1: ORDER BOOK (20%) */}
-               <div className="w-[20%] border-r border-grid flex flex-col min-w-[250px] bg-black/20">
+               <div className="w-[20%] border-r border-grid flex flex-col min-w-62.5 bg-black/20">
                    <Panel title="MARKET DEPTH" className="h-full border-0 bg-transparent flex flex-col">
                         <AgentOrderBook providers={providers} activeProvider={activeProvider} />
                    </Panel>
                </div>
                
                {/* COL 2: MAIN OUTPUT (50%) */}
-               <div className="w-[50%] flex flex-col min-w-[400px] relative z-10 border-r border-grid">
+               <div className="w-[50%] flex flex-col min-w-100 relative z-10 border-r border-grid">
                    <div className="h-full">
                        <BrainConsole status={status} content={streamContent} onStart={start} onStop={stop} />
                    </div>
                </div>
 
                {/* COL 3: ENGINE ROOM (30%) */}
-               <div className="w-[30%] flex flex-col min-w-[300px] bg-black/40">
+               <div className="w-[30%] flex flex-col min-w-75 bg-black/40">
                    {/* Top: Ticker (The Money Shot) */}
                    <div className="p-8 border-b border-grid flex flex-col justify-center items-end bg-black/40">
                        <div className="text-[10px] opacity-40 uppercase tracking-widest mb-2 text-right w-full">Live Settlement Stream</div>

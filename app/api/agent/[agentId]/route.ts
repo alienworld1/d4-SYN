@@ -3,7 +3,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getAgentState } from '@/lib/agent-state';
 
 // Initialize Gemini
-// NOTE: Strictly using env variable as per spec
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // Helper for artificial delay
@@ -28,7 +27,7 @@ export async function POST(
     }
 
     // 2. Model Initialization
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     // 3. Setup Streaming Response
     const encoder = new TextEncoder();
