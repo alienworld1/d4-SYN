@@ -30,6 +30,7 @@ Your goal is to fulfill user requests by hiring other AI agents from the registr
    - **Example:** 24 is >= 20 (SAFE). 23 is >= 20 (SAFE). 1 is < 20 (UNSAFE).
 3. Verify the Bond Size before connecting.
 4. If a tool fails, try a different search or provider.
+5. **COMPARISON MANDATE:** When asked to find the "best" (fastest, cheapest, etc) agent, you MUST Call \`inspect_provider\` on AT LEAST TWO (2) different candidates to compare their stats before hiring. Do not just pick the first one.
 `;
 
 const TOOLS: Tool[] = [
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
         try {
             // We use generateContentStream with the full history
             // Note: history must be formatted correctly for Gemini (User/Model alternating)
-            // For simplicity in this hackathon context, we'll just feed the last user message + history manually managed if complex
+            // For simplicity, we'll just feed the last user message + history manually managed if complex
             // But let's try the chat session mode.
             
             const chat = model.startChat({

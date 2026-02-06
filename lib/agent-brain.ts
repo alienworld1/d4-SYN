@@ -134,7 +134,18 @@ export class AgentBrain extends EventTarget {
 
   public async inspectProvider(ensName: string): Promise<Provider | null> {
       this.log('ENS', `Tool: Inspecting ${ensName}...`);
-      return this.resolveProvider(ensName);
+      const provider = await this.resolveProvider(ensName);
+      if (provider) {
+          // Upsert into state for arbitrage switching later
+          const idx = this.providers.findIndex(p => p.ensName === ensName);
+          if (idx !== -1) {
+              this.providers[idx] = provider;
+          } else {
+              this.providers.push(provider);
+          }
+          this.emitUpdate();
+      }
+      return provider;
   }
 
   public async hireProvider(ensName: string, prompt: string) {
@@ -144,6 +155,9 @@ export class AgentBrain extends EventTarget {
        if (!provider) {
            provider = await this.resolveProvider(ensName);
            if (!provider) throw new Error(`Could not resolve ${ensName}`);
+           // Upsert hired provider too
+           this.providers.push(provider);
+           this.emitUpdate();
        }
        
        // Force set active and connect
