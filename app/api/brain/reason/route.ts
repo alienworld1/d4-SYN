@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI, SchemaType, Tool } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, Tool, FunctionCallingMode } from '@google/generative-ai';
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -12,16 +12,22 @@ Your goal is to fulfill user requests by hiring other AI agents from the registr
 - You are a ReAct agent. You MUST use the provided tools to query the biological world.
 - **Do NOT describe your next action.** Just call the tool.
 - **Do NOT output JSON or simulated tool calls in your text.** Use the native Tool selection.
+- **Do NOT output Python code.**
+- **Do NOT say "I will call...".** Use the tool directly.
 
 **Workflow:**
 1. [THOUGHT] Brief reasoning.
-2. [TOOL] Search/Inspect/Hire.
-3. [DATA] Receive result.
+2. [TOOL_CALL] The model invokes the tool.
+3. [DATA] Result is returned.
 4. Loop.
 
 **Core Directives:**
 1. Minimize cost unless instructed to prioritize speed.
-2. NEVER hire a provider with a Trust Score < 20 (Risk of Rug Pull).
+2. **TRUST SAFETY CHECK:**
+   - You MUST check the 'trustScore' field.
+   - If trustScore >= 20: The provider is SAFE.
+   - If trustScore < 20: The provider is RISKY (Do NOT hire).
+   - **Example:** 24 is >= 20 (SAFE). 23 is >= 20 (SAFE). 1 is < 20 (UNSAFE).
 3. Verify the Bond Size before connecting.
 4. If a tool fails, try a different search or provider.
 `;
@@ -85,7 +91,12 @@ export async function POST(req: NextRequest) {
                   const args = JSON.parse(argsStats);
                   return {
                       role: 'model',
-                      parts: [{ functionCall: { name, args } }]
+                      parts: [{ 
+                        functionCall: { name, args },
+                        // Hack for Gemini 3: It requires thoughtSignature for tool calls.
+                        // We use a dummy signature as per "Context Engineering" FAQ.
+                        thoughtSignature: "context_engineering_is_the_way_to_go" 
+                      }]
                   };
               }
           } catch (e) { /* ignore parse error, fallback to text */ }
@@ -117,9 +128,10 @@ export async function POST(req: NextRequest) {
 
     // Inject System Prompt at the start
     const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-3-flash-preview',
         systemInstruction: SYSTEM_PROMPT,
         tools: TOOLS,
+        toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } }
     });
 
     const encoder = new TextEncoder();
