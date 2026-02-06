@@ -182,8 +182,16 @@ export async function POST(req: NextRequest) {
             controller.close();
         } catch (e: any) {
             console.error("Brain Error:", e);
-            const err = JSON.stringify({ type: 'error', content: e.message });
+            let errorMessage = e.message;
+            if (e.message.includes('429') || e.message.includes('503') || e.message.includes('Resource has been exhausted')) {
+                errorMessage = "The AI Brain is currently overloaded (Google Gemini API 429/503). This is an external API limit, not a bug in d4-syn. Please try again in a few seconds.";
+            }
+
+            const err = JSON.stringify({ type: 'thought', content: `[SYSTEM_ALERT] ${errorMessage}` }); // Send as thought so it renders nicely
             controller.enqueue(encoder.encode(`data: ${err}\n\n`));
+            
+            // Also send close signal
+            controller.enqueue(encoder.encode('data: [DONE]\n\n')); 
             controller.close();
         }
       }
