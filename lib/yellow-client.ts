@@ -13,7 +13,7 @@ import {
   createGetAssetsMessage
 } from '@erc7824/nitrolite';
 import { createWalletClient, createPublicClient, http, PrivateKeyAccount as ViemPrivateKeyAccount, hexToBigInt, Account, WalletClient, Transport, Chain, ParseAccount } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { privateKeyToAccount, generatePrivateKey } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 import { YELLOW_RPC_URL, YELLOW_ADDRESSES, MOCK_YELLOW, USDC_SEPOLIA_ADDRESS } from './constants';
 
@@ -46,6 +46,7 @@ export class YellowClient {
   private ws: WebSocket | null = null;
   public client: NitroliteClient;
   private account: ViemPrivateKeyAccount;
+  private sessionAccount: ViemPrivateKeyAccount | null = null;
   private signer: WalletStateSigner;
   private messageSigner: any; // Type is inferred from createECDSAMessageSigner
   private walletClient: WalletClient<Transport, Chain, Account>;
@@ -196,10 +197,17 @@ export class YellowClient {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
     try {
+      // Generate Ephemeral Session Key
+      const sessionPrivKey = generatePrivateKey();
+      this.sessionAccount = privateKeyToAccount(sessionPrivKey);
+      
+      // Update Message Signer to use Session Key
+      this.messageSigner = createECDSAMessageSigner(sessionPrivKey);
+      console.log(`[YELLOW] Generated New Session Key: ${this.sessionAccount.address}`);
       
       this.currentAuthParams = {
         address: this.account.address,
-        session_key: this.account.address,
+        session_key: this.sessionAccount.address,
         application: typeof window !== 'undefined' ? window.location.host : 'd4-syn-bot',
         allowances: [{asset: 'ytest.usd', amount: '1000000000'}],
         expires_at: BigInt(Math.floor(Date.now() / 1000) + 24 * 60 * 60), 
@@ -354,8 +362,13 @@ export class YellowClient {
         await this.refreshBalance();
         
         this.setState({ status: 'connected' });
-    } catch (err) {
+    } catch (err: any) {
         console.error('[YELLOW] Auth Sign Failed', err);
+        // Retry logic for expired sessions or collisions
+        if (err.message && (err.message.includes('session key already exists') || err.message.includes('expired'))) {
+            console.warn('[YELLOW] Session Key Rejected. Retrying with fresh key in 1s...');
+            setTimeout(() => this.authenticate(), 1000);
+        }
     }
   }
 
