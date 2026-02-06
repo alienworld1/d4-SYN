@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     // Inject System Prompt at the start
     const model = genAI.getGenerativeModel({ 
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash',
         systemInstruction: SYSTEM_PROMPT,
         tools: TOOLS,
         toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } }
