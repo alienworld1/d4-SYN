@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -36,6 +37,12 @@ export function Shell({ children }: ShellProps) {
       {/* Main Content Layer */}
       <div className="relative z-20 w-full h-full">
         {children}
+      </div>
+
+       {/* Footer Overlay */}
+       <div className="absolute bottom-2 right-4 z-50 text-[10px] text-gray-600 font-mono flex gap-4 pointer-events-auto">
+        <Link href="/security" className="hover:text-idle transition-colors">[SECURITY]</Link>
+        <span className="hover:text-idle transition-colors cursor-not-allowed">[LEGAL]</span>
       </div>
     </div>
   );
