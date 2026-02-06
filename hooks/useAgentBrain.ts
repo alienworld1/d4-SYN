@@ -12,6 +12,7 @@ export function useAgentBrain() {
   const [activeProvider, setActiveProvider] = useState<Provider | null>(null);
   const [logs, setLogs] = useState<BrainLog[]>([]);
   const [streamContent, setStreamContent] = useState<string>('');
+  const activeScanRef = useRef<number>(0);
 
   useEffect(() => {
     if (!yellowClient || brainRef.current) return;
@@ -54,12 +55,21 @@ export function useAgentBrain() {
   }, [yellowClient]);
 
   const scanRegistry = useCallback(async (category: string = 'finance') => {
+      const scanId = Date.now();
+      activeScanRef.current = scanId;
+
       if (!brainRef.current) return [];
+      
+      // Reset previous discovery state for fresh view
+      brainRef.current.resetDiscovery();
+
       const names = await brainRef.current.searchRegistry(category);
       
       // Throttle inspection to avoid Rate Limits (Sepolia RPCs are sensitive)
       // Process in chunks of 2
       for (let i = 0; i < names.length; i += 2) {
+          if (activeScanRef.current !== scanId) break; // Abort if new scan started
+          
           const chunk = names.slice(i, i + 2);
           await Promise.all(chunk.map(name => brainRef.current?.inspectProvider(name)));
           // Small delay between chunks

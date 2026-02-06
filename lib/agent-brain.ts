@@ -148,6 +148,11 @@ export class AgentBrain extends EventTarget {
       return provider;
   }
 
+  public resetDiscovery() {
+      this.providers = [];
+      this.emitUpdate();
+  }
+
   public async hireProvider(ensName: string, prompt: string) {
        this.log('OP', `Tool: Hiring ${ensName}...`);
        // Find or resolve
@@ -200,7 +205,7 @@ export class AgentBrain extends EventTarget {
 
         } catch (e: any) {
              this.log('ERROR', `Registry lookup failed: ${e.message}`);
-             throw e; // Fail hard if registry is down, per user request to be "real"
+             throw e;
         }
 
         if (!listString) throw new Error('Registry empty.');

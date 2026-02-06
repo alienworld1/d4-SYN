@@ -59,6 +59,23 @@ export default function RegistryPage() {
                         </Link>
                     </div>
                     <div className="flex items-center gap-4 text-xs font-mono">
+                         {/* CATEGORY FILTER */}
+                         <div className="flex gap-2 border-r border-gray-800 pr-4 mr-2">
+                            {['finance', 'quant'].map((cat) => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setFilterCategory(cat)}
+                                    className={`px-3 py-1 uppercase border transition-all ${
+                                        filterCategory === cat 
+                                        ? 'border-idle text-idle bg-idle/10 shadow-[0_0_10px_rgba(0,255,65,0.2)]' 
+                                        : 'border-gray-800 text-gray-600 hover:text-gray-400 hover:border-gray-600'
+                                    }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                         </div>
+
                          <div className="flex gap-2">
                              <button 
                                 onClick={() => setSortBy('trust')} 
