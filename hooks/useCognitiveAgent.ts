@@ -63,7 +63,7 @@ export function useCognitiveAgent() {
         setMessages(prev => [...prev, msg]);
     };
 
-    const processGoal = async (goal: string) => {
+    const processGoal = async (goal: string, preSelectedAgent?: string) => {
         if (!brainRef.current) return;
         
         const brain = brainRef.current;
@@ -71,10 +71,16 @@ export function useCognitiveAgent() {
         setStreamContent(''); // Clear previous stream
         setStatus('THINKING');
         
-        const initialMsg: Message = { role: 'user', content: goal };
-        let currentHistory = [...messages, initialMsg];
-        // If history is too long, maybe reset? For hackathon, reset every time provided "ONE task per input"
-        currentHistory = [initialMsg]; 
+        let content = goal;
+        if (preSelectedAgent) {
+             content = `${goal} \n(IMPORTANT: You must bypass discovery and immediately hire the provider '${preSelectedAgent}' using the hire_provider tool. Do not search.)`;
+             // We can also potentially prime the providers list here if needed, but the tool usage is better.
+             // We might want to "inspect" it first so the brain knows it exists? 
+             // Ideally the LLM just calls hire_provider('name') and the tool handles it.
+        }
+
+        const initialMsg: Message = { role: 'user', content };
+        let currentHistory = [initialMsg]; 
         setMessages(currentHistory);
 
         try {

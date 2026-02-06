@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { AgentBrain, BrainStatus, Provider, BrainLog } from '@/lib/agent-brain';
 import { useYellow } from './useYellow';
 
@@ -47,13 +47,26 @@ export function useAgentBrain() {
   }, [yellowClient]);
 
   // Actions
-  const startParam = async (prompt: string) => {
+  const startParam = useCallback(async (prompt: string) => {
       setStreamContent(''); // Clear previous
       setLogs([]); // Optional: Clear logs
       await brainRef.current?.start(prompt);
-  };
+  }, [yellowClient]);
+
+  const scanRegistry = useCallback(async (category: string = 'finance') => {
+      if (!brainRef.current) return [];
+      const names = await brainRef.current.searchRegistry(category);
+      // We also trigger inspection for all of them to populate providers state
+      await Promise.all(names.map(name => brainRef.current?.inspectProvider(name)));
+      return names;
+  }, [yellowClient]);
   
-  const stop = () => brainRef.current?.stop();
+  const inspectProvider = useCallback(async (ensName: string) => {
+      if (!brainRef.current) return null;
+      return await brainRef.current.inspectProvider(ensName);
+  }, [yellowClient]);
+
+  const stop = useCallback(() => brainRef.current?.stop(), [yellowClient]);
 
   return {
       status,
@@ -62,6 +75,8 @@ export function useAgentBrain() {
       logs,
       streamContent,
       start: startParam,
+      scanRegistry,
+      inspectProvider,
       stop
   };
 }

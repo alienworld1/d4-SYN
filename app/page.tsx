@@ -10,8 +10,10 @@ import { TerminalLogs } from "@/components/brain/TerminalLogs";
 import { useCognitiveAgent } from "@/hooks/useCognitiveAgent";
 import { useYellow } from "@/hooks/useYellow";
 import { RollingTicker } from "@/components/ui/RollingTicker";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function Home() {
+function MissionControl() {
   const { 
     status, 
     streamContent, 
@@ -22,10 +24,17 @@ export default function Home() {
     logs 
   } = useCognitiveAgent();
   
+  const searchParams = useSearchParams();
+  const preSelectedAgent = searchParams.get('agent');
+
   const { state: yellowState } = useYellow();
 
   // Assuming 6 decimals for USDC
   const balance = yellowState.balance ? Number(yellowState.balance) / 1000000 : 0;
+  
+  const handleStart = (prompt: string) => {
+      start(prompt, preSelectedAgent || undefined);
+  }
 
   return (
     <Shell>
@@ -38,6 +47,12 @@ export default function Home() {
                    <div className="text-xs text-gray-500 font-mono tracking-widest">MISSION CONTROL</div>
                </div>
                <div className="flex items-center gap-6 text-xs font-mono">
+                   {preSelectedAgent && (
+                       <div className="flex items-center gap-2 animate-pulse">
+                           <span className="text-idle">TARGET_LOCKED:</span>
+                           <span className="bg-idle/10 text-idle px-2 py-0.5 border border-idle">{preSelectedAgent}</span>
+                       </div>
+                   )}
                    <div className="flex items-center gap-2">
                        <span className="opacity-50">NETWORK</span>
                        <span className={yellowState.status === 'active' ? 'text-idle animate-pulse' : 'text-cold'}>
@@ -63,7 +78,7 @@ export default function Home() {
                {/* COL 2: MAIN OUTPUT (50%) */}
                <div className="w-[50%] flex flex-col min-w-100 relative z-10 border-r border-grid">
                    <div className="h-full">
-                       <BrainConsole status={status} content={streamContent} onStart={start} onStop={stop} />
+                       <BrainConsole status={status} content={streamContent} onStart={handleStart} onStop={stop} />
                    </div>
                </div>
 
@@ -97,4 +112,12 @@ export default function Home() {
        </div>
     </Shell>
   );
+}
+
+export default function Home() {
+    return (
+        <Suspense fallback={<div className="text-white">Loading Mission Control...</div>}>
+            <MissionControl />
+        </Suspense>
+    )
 }

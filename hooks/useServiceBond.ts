@@ -11,7 +11,9 @@ export const ENS_REGISTRY_ADDRESS = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
 
 export type BondState = "ACTIVE" | "UNBONDING" | "UNBONDED";
 
-export function useServiceBond() {
+export function useServiceBond(ensNameOverride?: string) {
+  const ensName = ensNameOverride || DEMO_ENS_NAME;
+  const nodeHash = namehash(normalize(ensName));
   const [bondState, setBondState] = useState<BondState>("ACTIVE");
   const [countdown, setCountdown] = useState<number>(0);
   const { address } = useAccount();
@@ -21,7 +23,7 @@ export function useServiceBond() {
     address: SERVICE_BOND_ADDRESS,
     abi: SERVICE_BOND_ABI,
     functionName: "bonds",
-    args: [DEMO_NODE_HASH],
+    args: [nodeHash],
   });
 
   // Read ENS Owner
@@ -35,7 +37,7 @@ export function useServiceBond() {
       outputs: [{ name: "", type: "address" }],
     }],
     functionName: "owner",
-    args: [DEMO_NODE_HASH],
+    args: [nodeHash],
   });
 
   const { writeContract, data: txHash, isPending: isWritePending } = useWriteContract();
@@ -83,7 +85,7 @@ export function useServiceBond() {
       address: SERVICE_BOND_ADDRESS,
       abi: SERVICE_BOND_ABI,
       functionName: "deposit",
-      args: [DEMO_NODE_HASH],
+      args: [nodeHash],
       value: parseEther(ethAmount),
     });
   };
@@ -93,7 +95,7 @@ export function useServiceBond() {
       address: SERVICE_BOND_ADDRESS,
       abi: SERVICE_BOND_ABI,
       functionName: "initiateExit",
-      args: [DEMO_NODE_HASH],
+      args: [nodeHash],
     });
   };
 
@@ -111,6 +113,7 @@ export function useServiceBond() {
     amount,
     bondState,
     countdown,
+    unbondRequestTime,
     deposit,
     initiateExit,
     finalizeExit,
