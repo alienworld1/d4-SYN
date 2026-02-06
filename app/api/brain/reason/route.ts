@@ -8,25 +8,22 @@ const SYSTEM_PROMPT = `
 You are an autonomous economic agent running on d4-syn. 
 Your goal is to fulfill user requests by hiring other AI agents from the registry.
 
-**CRITICAL INSTRUCTION: USE TOOLS!**
-You cannot "think" an action into existence. You MUST call the provided tools to interact with the world.
-- To search: Call \`search_registry\`.
-- To check price/trust: Call \`inspect_provider\`.
-- To hiring: Call \`hire_provider\`.
+**CRITICAL: TOOL USAGE**
+- You are a ReAct agent. You MUST use the provided tools to query the biological world.
+- **Do NOT describe your next action.** Just call the tool.
+- **Do NOT output JSON or simulated tool calls in your text.** Use the native Tool selection.
 
-**Do NOT just narrate your plan.**
-Incorrect: "[THOUGHT] I will search for finance." (Stops there)
-Correct: Call \`search_registry('finance')\`.
+**Workflow:**
+1. [THOUGHT] Brief reasoning.
+2. [TOOL] Search/Inspect/Hire.
+3. [DATA] Receive result.
+4. Loop.
 
 **Core Directives:**
 1. Minimize cost unless instructed to prioritize speed.
 2. NEVER hire a provider with a Trust Score < 20 (Risk of Rug Pull).
 3. Verify the Bond Size before connecting.
 4. If a tool fails, try a different search or provider.
-
-**Reasoning Style:**
-Emulate a cybernetic internal monologue in thoughts, but ACT immediately.
-"[THOUGHT] Analyzing user request..." -> TOOL CALL
 `;
 
 const TOOLS: Tool[] = [
@@ -78,15 +75,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
     }
 
-    // Convert frontend messages to Gemini format if needed (simplified here, assuming compatible structure or just taking last)
-    // Actually Gemini needs strict checking.
-    const history = messages.map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: m.parts || [{ text: m.content }]
-    }));
+    const history = messages.map((m: any) => {
+      // 1. Hydrate Model Tool Calls (recover from client text representation)
+      if (m.role === 'model' && typeof m.content === 'string' && m.content.startsWith('I will call ')) {
+          try {
+              const match = m.content.match(/^I will call (\w+) with (.+)$/);
+              if (match) {
+                  const [_, name, argsStats] = match;
+                  const args = JSON.parse(argsStats);
+                  return {
+                      role: 'model',
+                      parts: [{ functionCall: { name, args } }]
+                  };
+              }
+          } catch (e) { /* ignore parse error, fallback to text */ }
+      }
 
-    // Inject System Prompt at the start if it's a fresh conversation, 
-    // but Gemini API 'systemInstruction' is better.
+      // 2. Hydrate Function Responses (recover from client text representation)
+      if (m.role === 'user' && typeof m.content === 'string' && m.content.startsWith('[TOOL_RESULT] ')) {
+           try {
+              const match = m.content.match(/^\[TOOL_RESULT\] (\w+) returned: (.+)$/);
+              if (match) {
+                   const [_, name, resultStr] = match;
+                   let resultJson;
+                   try { resultJson = JSON.parse(resultStr); } catch { resultJson = { output: resultStr }; }
+                   
+                   return {
+                       role: 'function',
+                       parts: [{ functionResponse: { name, response: { content: resultJson } } }]
+                   };
+              }
+           } catch (e) { /* ignore parse error */ }
+      }
+
+      // Default: Text
+      return {
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: m.parts || [{ text: m.content || '' }]
+      };
+    });
+
+    // Inject System Prompt at the start
     const model = genAI.getGenerativeModel({ 
         model: 'gemini-2.5-flash-lite',
         systemInstruction: SYSTEM_PROMPT,

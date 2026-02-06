@@ -171,6 +171,12 @@ export function useCognitiveAgent() {
                 }
             }
         }
+        // If we exit the loop without return, the stream finished.
+        if (brain.status === 'THINKING' || brain.status === 'ACTING') {
+            // Brain stopped talking without calling a tool.
+             brain.log('WARN', 'Brain finished stream without action.');
+             setStatus('IDLE');
+        }
     };
 
     return {
