@@ -1,13 +1,14 @@
 "use client";
 
 import { Shell } from "@/components/layout/Shell";
-import { SplitPane } from "@/components/layout/SplitPane";
 import { Panel } from "@/components/ui/Panel";
 import { YellowMonitor } from "@/components/session/YellowMonitor";
 import { BrainConsole } from "@/components/brain/BrainConsole";
 import { AgentOrderBook } from "@/components/brain/AgentOrderBook";
 import { TerminalLogs } from "@/components/brain/TerminalLogs";
 import { useAgentBrain } from "@/hooks/useAgentBrain";
+import { useYellow } from "@/hooks/useYellow";
+import { RollingTicker } from "@/components/ui/RollingTicker";
 
 export default function Home() {
   const { 
@@ -19,43 +20,80 @@ export default function Home() {
     activeProvider,
     logs 
   } = useAgentBrain();
+  
+  const { state: yellowState } = useYellow();
+
+  // Assuming 6 decimals for USDC
+  const balance = yellowState.balance ? Number(yellowState.balance) / 1000000 : 0;
 
   return (
     <Shell>
-      <SplitPane
-        left={
-          <Panel title={`HUMAN_OUTPUT::RENDER [${status}]`} className="h-full border-r-0 border-l-0 border-t-0 border-b-0">
-            <BrainConsole 
-              status={status} 
-              content={streamContent} 
-              onStart={start} 
-              onStop={stop} 
-            />
-          </Panel>
-        }
-        right={
-          <Panel title="MACHINE_MIND::LOGS" className="h-full border-r-0 border-l-0 border-t-0 border-b-0">
-            <div className="flex flex-col gap-6 h-full p-4">
-              {/* MARKET OVERVIEW */}
-              <div className="shrink-0">
-                <div className="text-[10px] opacity-40 mb-2 uppercase tracking-widest font-sans font-bold text-idle">Global Order Book</div>
-                <AgentOrderBook providers={providers} activeProvider={activeProvider} />
-              </div>
+       <div className="flex flex-col h-full w-full">
+           {/* HEADER */}
+           <header className="h-12 border-b border-grid flex justify-between items-center px-4 bg-void/80 backdrop-blur-md z-30 shrink-0">
+               <div className="flex items-center gap-4">
+                   <div className="text-lg font-bold tracking-tighter text-white font-mono">d4-syn // AGENT_V1</div>
+                   <div className="h-4 w-px bg-grid"></div>
+                   <div className="text-xs text-gray-500 font-mono tracking-widest">MISSION CONTROL</div>
+               </div>
+               <div className="flex items-center gap-6 text-xs font-mono">
+                   <div className="flex items-center gap-2">
+                       <span className="opacity-50">NETWORK</span>
+                       <span className={yellowState.status === 'active' ? 'text-idle animate-pulse' : 'text-cold'}>
+                           [{yellowState.status.toUpperCase()}]
+                       </span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                        <span className="opacity-50">UNIFIED_BAL</span>
+                        <span className="text-white font-bold">${balance.toFixed(2)} USDC</span>
+                   </div>
+               </div>
+           </header>
 
-              {/* FUEL & PAYMENT RAIL */}
-              <div className="shrink-0 mb-4">
-                 <YellowMonitor />
-              </div>
+           {/* MAIN GRID */}
+           <div className="flex-1 flex overflow-hidden">
+               {/* COL 1: ORDER BOOK (20%) */}
+               <div className="w-[20%] border-r border-grid flex flex-col min-w-[250px] bg-black/20">
+                   <Panel title="MARKET DEPTH" className="h-full border-0 bg-transparent flex flex-col">
+                        <AgentOrderBook providers={providers} activeProvider={activeProvider} />
+                   </Panel>
+               </div>
+               
+               {/* COL 2: MAIN OUTPUT (50%) */}
+               <div className="w-[50%] flex flex-col min-w-[400px] relative z-10 border-r border-grid">
+                   <div className="h-full">
+                       <BrainConsole status={status} content={streamContent} onStart={start} onStop={stop} />
+                   </div>
+               </div>
 
-              {/* MODULE 5: SYSTEM LOGS */}
-              <div className="flex-1 min-h-0 border-t border-grid border-dashed pt-4 flex flex-col">
-                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-widest font-sans font-bold">System_Event_Stream</div>
-                <TerminalLogs logs={logs} />
-              </div>
-            </div>
-          </Panel>
-        }
-      />
+               {/* COL 3: ENGINE ROOM (30%) */}
+               <div className="w-[30%] flex flex-col min-w-[300px] bg-black/40">
+                   {/* Top: Ticker (The Money Shot) */}
+                   <div className="p-8 border-b border-grid flex flex-col justify-center items-end bg-black/40">
+                       <div className="text-[10px] opacity-40 uppercase tracking-widest mb-2 text-right w-full">Live Settlement Stream</div>
+                       <RollingTicker 
+                            value={balance} 
+                            className="text-5xl text-idle font-bold text-glow-idle" 
+                            prefix="$" 
+                        />
+                   </div>
+                   
+                   {/* Middle: Connection Info */}
+                   <div className="p-4 border-b border-grid">
+                        <YellowMonitor />
+                   </div>
+                   
+                   {/* Bottom: Logs */}
+                   <div className="flex-1 flex flex-col p-0 min-h-0 overflow-hidden relative">
+                       <div className="absolute top-0 left-0 w-full h-px bg-grid z-10"></div>
+                       <div className="p-2 text-[10px] opacity-40 uppercase tracking-widest bg-grid/10 pl-4">System Logs</div>
+                       <div className="flex-1 overflow-y-auto px-2 pb-2">
+                           <TerminalLogs logs={logs} />
+                       </div>
+                   </div>
+               </div>
+           </div>
+       </div>
     </Shell>
   );
 }

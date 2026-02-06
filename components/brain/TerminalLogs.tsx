@@ -20,15 +20,16 @@ export function TerminalLogs({ logs }: TerminalLogsProps) {
             let typeColor = 'text-cold';
             if (log.type === 'ARB') typeColor = 'text-heat font-bold animate-glitch';
             if (log.type === 'YEL') typeColor = 'text-idle';
-            if (log.type === 'ENS') typeColor = 'text-data';
+            if (log.type === 'ENS' || log.type === 'DISCOVERY') typeColor = 'text-data';
+            if (log.type === 'WARN') typeColor = 'text-warn';
             if (log.type === 'ERROR') typeColor = 'text-red-500 font-bold';
 
             return (
-                <div key={i} className="flex gap-2 w-full break-all hover:bg-white/5 transition-colors">
-                    <span className="opacity-30 whitespace-nowrap">
-                        <Ticker value={new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })} />
+                <div key={i} className="flex gap-2 w-full break-all hover:bg-white/5 transition-colors leading-tight">
+                    <span className="opacity-30 whitespace-nowrap text-[9px]">
+                        [{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}]
                     </span>
-                    <span className={`w-8 text-right shrink-0 ${typeColor} tracking-tighter`}>
+                    <span className={`w-8 text-right shrink-0 ${typeColor} tracking-tighter font-bold`}>
                         [{log.type}]
                     </span>
                     <span className="opacity-80 flex-1 text-gray-300">
