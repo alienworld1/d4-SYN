@@ -9,6 +9,26 @@ import { Badge } from "@/components/ui/Badge";
 export function YellowMonitor() {
   const { state, openChannel, closeChannel, pay, payWithSLA, eventBus, getTelemetry } = useYellow();
   const [slaMessage, setSlaMessage] = useState<string | null>(null);
+  const [isRequestingFaucet, setIsRequestingFaucet] = useState(false);
+
+  const requestFaucet = async () => {
+    if (!state.address) return;
+    setIsRequestingFaucet(true);
+    try {
+        const res = await fetch('https://clearnet-sandbox.yellow.com/faucet/requestTokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userAddress: state.address })
+        });
+        const data = await res.json();
+        console.log('Faucet Response:', data);
+        if (!res.ok) alert('Faucet Limit Reached or Error: ' + JSON.stringify(data));
+    } catch (e) {
+        console.error('Faucet Request Failed', e);
+    } finally {
+        setIsRequestingFaucet(false);
+    }
+  };
 
   // SLA Event Listener
   useEffect(() => {
@@ -95,9 +115,20 @@ export function YellowMonitor() {
             <div className="font-mono text-[10px] break-all opacity-80 text-gray-300">
               {state.address}
             </div>
-            <div className="mt-2 text-[9px] text-warn opacity-80 leading-tight">
-              ! FUND WITH YTEST.USD VIA FAUCET !
-            </div>
+            {state.balance === BigInt(0) && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-[9px] text-warn opacity-80 uppercase animate-pulse">
+                        ! LOW FUEL !
+                    </span>
+                    <button 
+                        onClick={requestFaucet}
+                        disabled={isRequestingFaucet}
+                        className="px-2 py-1 bg-warn/10 border border-warn/30 text-warn hover:bg-warn/20 transition-all uppercase text-[9px] disabled:opacity-50"
+                    >
+                        {isRequestingFaucet ? "[INJECTING...]" : "[REQ_FAUCET]"}
+                    </button>
+                </div>
+            )}
           </div>
         )}
 
