@@ -136,6 +136,12 @@ export class YellowClient {
   }
 
   public async init() {
+    // Prevent overlapping connections
+    if (this.internalState.status === 'connecting' || (this.ws && this.ws.readyState === WebSocket.OPEN)) {
+        console.log('[YELLOW] Init skipped - already connecting or connected');
+        return;
+    }
+
     // MOCK MODE Disabled for Real Implementation
     /*
     if (MOCK_YELLOW) {
@@ -162,6 +168,10 @@ export class YellowClient {
       this.ws.onclose = () => {
         console.log('[YELLOW] WS Closed');
         this.setState({ status: 'disconnected', channelId: null });
+        
+        // Automatic Reconnection
+        console.log('[YELLOW] Connection lost. Reconnecting in 3s...');
+        setTimeout(() => this.init(), 3000);
       };
 
       this.ws.onerror = (err) => {
@@ -473,9 +483,42 @@ export class YellowClient {
     }
   }
 
+  private async waitForConnection(timeoutMs = 15000): Promise<void> {
+    if (this.internalState.status === 'connected') return;
+    
+    // If completely dead, trigger init
+    if (this.internalState.status === 'disconnected' || this.internalState.status === 'error') {
+        this.init();
+    }
+
+    return new Promise((resolve, reject) => {
+        let unsubscribe: () => void;
+        
+        const timeout = setTimeout(() => {
+            if (unsubscribe) unsubscribe();
+            reject(new Error(`Connection timeout after ${timeoutMs}ms. Status: ${this.internalState.status}`));
+        }, timeoutMs);
+
+        unsubscribe = this.subscribe((state) => {
+            if (state.status === 'connected') {
+                clearTimeout(timeout);
+                unsubscribe();
+                resolve();
+            }
+        });
+    });
+  }
+
   public async openChannel(providerAddress: string) {
+    // Ensure we are connected before proceeding
     if (this.internalState.status !== 'connected') {
-        console.warn("Client not connected, attempting but might fail");
+        console.warn("[YELLOW] Client not connected, waiting for connection...");
+        try {
+            await this.waitForConnection();
+        } catch (e) {
+            console.error("[YELLOW] Failed to establish connection for openChannel", e);
+            throw e;
+        }
     }
 
     try {
