@@ -18,10 +18,11 @@ export default function SecurityPage() {
             <div className="sticky top-24">
               <Panel title="NAVIGATION" className="border-idle/30">
                 <nav className="flex flex-col text-sm p-4 space-y-2 font-mono">
-                  <a href="#thesis" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">1. The Thesis</a>
-                  <a href="#trust-protocol" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">2. Trust Protocol</a>
-                  <a href="#execution-protocol" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">3. Execution Protocol</a>
-                  <a href="#threat-model" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">4. Threat Model</a>
+                  <a href="#core-problem" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">1. The Core Problem</a>
+                  <a href="#game-theory" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">2. Game Theory</a>
+                  <a href="#digital-real-estate" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">3. Digital Real Estate</a>
+                  <a href="#quality-of-service" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">4. Quality of Service</a>
+                   <a href="#threat-model" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">5. Threat Model</a>
                 </nav>
               </Panel>
               
@@ -36,110 +37,69 @@ export default function SecurityPage() {
             
             {/* Header */}
             <header className="space-y-4 pt-12">
-              <h1 className="text-6xl font-sans font-bold uppercase tracking-tight text-white">
-                The Security <br/>
-                <span className="text-idle">Manifesto</span>
+              <h1 className="text-6xl font-sans font-bold uppercase tracking-tight text-white leading-none">
+                Security at the<br/>
+                <span className="text-idle">Speed of Light</span>
               </h1>
               <p className="text-xl text-gray-400 font-mono border-l-4 border-grid pl-4 py-2">
-                User Guide v1.0 // Module 10
+                Engineering Whitepaper // Module 10.5
               </p>
             </header>
 
-            {/* Section 1: The Thesis */}
-            <section id="thesis" className="space-y-6">
+            {/* Section A: The Core Problem */}
+            <section id="core-problem" className="space-y-6">
               <h2 className="text-3xl font-sans font-bold uppercase text-white flex items-center gap-3">
                 <Terminal className="text-idle w-8 h-8" />
-                1. The Physics of Trustless Compute
+                1. The Core Problem
               </h2>
-              <div className="prose prose-invert prose-mono max-w-none text-justify text-gray-300">
-                <p>
-                  <span className="float-left text-5xl font-bold text-idle pr-4 leading-14 -mt-2">T</span>
-                  raditional reputation systems are broken because they rely on Identity (Web2). d4-syn rebuilds reputation based on two immutables: <strong>Capital Gravity</strong> (DeFi) and <strong>Physics</strong> (Latency).
+              <div className="prose prose-invert max-w-none text-justify text-gray-300 font-sans leading-relaxed">
+                 <p className="mb-4">
+                  In traditional finance, fraud is prevented by friction: 2-day settlement times, chargebacks, and manual reviews.
                 </p>
-                <p className="mt-4">
-                  We do not ask "Attempt to verify this person." We ask "How much capital will they lose if they lie?" and "Can they cryptographically prove the work was done in 50ms?"
+                <p className="mb-4">
+                  Autonomous Agents cannot afford friction. They trade at millisecond speeds. If an Agent is tricked, it can be drained instantly with no recourse.
+                </p>
+                <p>
+                  We cannot rely on human oversight. We must rely on <strong>Economic Determinism</strong>. Security in d4-syn is not enforced by a moderator; it is enforced by the math of the protocol.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-8">
-                <Panel title="THE ANCHOR (ENS)" className="h-32 p-4">
-                    <div className="flex items-center gap-4 h-full"> 
-                        <ShieldCheck className="w-10 h-10 text-idle" />
-                        <div>
-                            <div className="text-white font-bold">Identity + Capital</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                                An ENS node acts as the unbreakable bond between a reputation and a staking contract.
-                            </div>
-                        </div>
-                    </div>
-                </Panel>
-                <Panel title="THE RAIL (YELLOW)" className="h-32 p-4">
-                    <div className="flex items-center gap-4 h-full">
-                        <Zap className="w-10 h-10 text-warn" />
-                        <div>
-                            <div className="text-white font-bold">Streaming + Finality</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                                State channels allow us to switch providers in milliseconds, enforcing Micro-SLAs.
-                            </div>
-                        </div>
-                    </div>
-                </Panel>
+               {/* Insight Callout */}
+              <div className="border-l-2 border-idle bg-idle/5 p-6 mt-6">
+                <div className="text-idle text-xs font-bold uppercase tracking-widest mb-2 font-mono">
+                    [ARCHITECTURAL NOTE]
+                </div>
+                <p className="font-sans text-sm text-gray-300">
+                    Why Yellow? L2 blockchains have 2-second block times. We need 50ms heartbeat verification. State Channels are the only technology that fits the physics of this problem.
+                </p>
               </div>
             </section>
 
-            {/* Section 2: The Trust Protocol */}
-            <section id="trust-protocol" className="space-y-8">
+            {/* Section B: Game Theory & Rationality */}
+            <section id="game-theory" className="space-y-6">
               <h2 className="text-3xl font-sans font-bold uppercase text-white flex items-center gap-3">
                 <ShieldCheck className="text-idle w-8 h-8" />
-                2. The Trust Protocol
+                2. Making Malice Expensive
               </h2>
-              
-              <div className="space-y-6">
-                <h3 className="text-xl text-white font-bold font-mono border-b border-grid pb-2">A. Logarithmic Capital Gravity</h3>
-                <p className="text-gray-300 font-mono text-justify">
-                    In our system, trust does not scale linearly. A $1,000 bond implies significantly more commitment than $10, but $1,000,000 is not 1,000x more trustworthy than $1,000. We use a Log10 scale to calculate "Trust Scores" to prevent whales from buying instant reputation.
+              <div className="prose prose-invert max-w-none text-justify text-gray-300 font-sans leading-relaxed">
+                <p className="mb-4">
+                  We don't try to make scamming impossible. We make it <strong>unprofitable</strong>.
                 </p>
-                {/* Visual Bar Chart */}
-                <div className="bg-grid/20 p-4 border border-grid space-y-2 font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                        <div className="w-16 text-right">$10</div>
-                        <div className="h-4 bg-cold w-[10%]"></div>
-                        <div className="text-gray-500">Score: 10</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-16 text-right">$100</div>
-                        <div className="h-4 bg-idle/50 w-[20%]"></div>
-                        <div className="text-gray-500">Score: 20</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-16 text-right">$10k</div>
-                        <div className="h-4 bg-idle w-[80%]"></div>
-                        <div className="text-gray-500">Score: 40 (Max)</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-16 text-right">$1M</div>
-                        <div className="h-4 bg-idle w-[82%] border-r-2 border-warn"></div>
-                        <div className="text-gray-500">Score: 42 (Diminishing Returns)</div>
-                    </div>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="text-xl text-white font-bold font-mono border-b border-grid pb-2">B. The "Bond Parking" Defense</h3>
-                <p className="text-gray-300 font-mono text-justify">
-                    The <strong>Activity Decay</strong> function ensures "Use-it-or-Lose-it" trust. If a node goes dormant (no settlements for 24 hours), its trust score receives a <span className="text-heat">0.5x Penalty</span>. You cannot park money to fake reliability.
+                <p className="mb-4">
+                  To attack the network (e.g., serve bad data), a provider must first build a high Trust Score. This requires:
+                </p>
+                <ul className="list-disc pl-6 space-y-2 mb-4 marker:text-idle font-mono text-sm">
+                    <li><strong className="text-white">Capital:</strong> Locking real ETH (Opportunity Cost).</li>
+                    <li><strong className="text-white">Time:</strong> Waiting weeks for the 'Age' score to mature.</li>
+                </ul>
+                <p>
+                  The moment a provider attempts to exit (to run away with funds), the protocol enforces a 'Lame Duck' period. Agents immediately detect the exit signal and stop streaming payments. The attacker burns their reputation for zero profit.
                 </p>
               </div>
 
-               <div className="space-y-6">
-                <h3 className="text-xl text-white font-bold font-mono border-b border-grid pb-2">C. The "Lame Duck" Period</h3>
-                <p className="text-gray-300 font-mono text-justify">
-                    To prevent Rug Pulls (Exit Scams), we implement a state-locked exit queue. When a provider calls <code className="bg-grid px-1 text-idle">initiateExit()</code>, they enter the <strong>UNBONDING</strong> state. They are immediately blacklisted by all Agents, but their funds remain locked for the challenge period.
-                </p>
-                
-                {/* Unbonding Diagram */}
-                <div className="mt-8 relative pt-8 pb-4">
-                    <div className="flex justify-between items-center text-xs font-mono relative z-10 w-full">
+               {/* Unbonding Diagram */}
+                <div className="mt-8 relative pt-8 pb-4 font-mono">
+                    <div className="flex justify-between items-center text-xs relative z-10 w-full">
                         <div className="flex flex-col items-center gap-2 w-1/3">
                             <div className="w-4 h-4 rounded-full bg-idle ring-4 ring-idle/20" />
                             <div className="px-3 py-1 bg-idle/10 border border-idle text-idle">ACTIVE</div>
@@ -162,46 +122,51 @@ export default function SecurityPage() {
                         7 Day Lockup
                     </div>
                 </div>
+            </section>
+
+             {/* Section C: Digital Real Estate */}
+            <section id="digital-real-estate" className="space-y-6">
+              <h2 className="text-3xl font-sans font-bold uppercase text-white flex items-center gap-3">
+                <Scale className="text-idle w-8 h-8" />
+                3. Identity is an Asset, Not a User
+              </h2>
+               <div className="prose prose-invert max-w-none text-justify text-gray-300 font-sans leading-relaxed">
+                <p className="mb-4">
+                  A common question is: <em>'What if I forget to renew my ENS domain and someone takes my Bond?'</em>
+                </p>
+                <p className="mb-4">
+                  In d4-syn, we treat the ENS Domain like a <strong>Business License</strong> or a piece of <strong>Digital Real Estate</strong>. The reputation and the bonded capital belong to the <em>Name</em>, not the <em>Wallet</em>.
+                </p>
+                <p>
+                   This is a feature. It ensures that 'Dead Capital' doesn't rot in the system. If a business shuts down (expires), the market can recycle the identity and the bond, keeping the registry active and efficient.
+                </p>
               </div>
             </section>
 
-             {/* Callout */}
-             <div className="border border-warn/50 bg-warn/5 p-6 relative">
-                <div className="absolute -top-3 left-4 bg-void px-2 text-warn text-sm font-bold border border-warn/50">
-                    [NOTE] WHY WE NEED THE RAIL
-                </div>
-                <p className="font-mono text-sm text-gray-300 leading-relaxed">
-                    Why not just use an L2? Because you cannot verify 50ms heartbeat latency on a 2-second block time chain. <strong>Yellow Network</strong> is the only way to achieve sub-second finality required for high-frequency compute arbitrage.
-                </p>
-             </div>
-
-
-            {/* Section 3: Execution Protocol */}
-            <section id="execution-protocol" className="space-y-8">
+             {/* Section D: Quality of Service */}
+             <section id="quality-of-service" className="space-y-6">
               <h2 className="text-3xl font-sans font-bold uppercase text-white flex items-center gap-3">
                 <Zap className="text-idle w-8 h-8" />
-                3. The Execution Protocol
+                4. The Customer is the Oracle
               </h2>
-               <div className="space-y-6">
-                <h3 className="text-xl text-white font-bold font-mono border-b border-grid pb-2">Micro-SLA Enforcement</h3>
-                <p className="text-gray-300 font-mono text-justify">
-                   We adhere to the philosophy of "Pay-for-Performance, not Pay-for-Promise." Agents calculate latency per-token. If a provider lags by 50ms, the payment stream is throttled by 10% in real-time. 
+               <div className="prose prose-invert max-w-none text-justify text-gray-300 font-sans leading-relaxed">
+                <p className="mb-4">
+                  Verifying latency on a blockchain is impossible. So we don't try.
                 </p>
-              </div>
-
-               <div className="space-y-6">
-                <h3 className="text-xl text-white font-bold font-mono border-b border-grid pb-2">The Buyer's Market</h3>
-                <p className="text-gray-300 font-mono text-justify">
-                   Who verifies latency? <strong>Local Consensus.</strong> Since compute is abundant, the Buyer is King. If the Agent <em>perceives</em> lag, it pays less. The Provider accepts this because "Some revenue is better than 0 revenue" in a market of idle capacity.
+                <p className="mb-4">
+                  We rely on <strong>Local Consensus</strong>. If an Agent perceives that a provider is slow, it automatically reduces the payment rate via the Yellow State Channel.
+                </p>
+                <p>
+                   The Provider accepts this 'penalty' because earning a reduced rate on idle capacity is better than earning nothing. This aligns the incentives of the Buyer (speed) and the Seller (utilization) without needing a central arbitrator.
                 </p>
               </div>
             </section>
 
-            {/* Section 4: Threat Model */}
+             {/* Section: Threat Model (retained but compacted) */}
             <section id="threat-model" className="space-y-8 pb-20">
                <h2 className="text-3xl font-sans font-bold uppercase text-white flex items-center gap-3">
-                <Scale className="text-idle w-8 h-8" />
-                4. Threat Model & Mitigations
+                <ShieldCheck className="text-idle w-8 h-8" />
+                5. Threat Model Analysis
               </h2>
               
               <div className="overflow-x-auto border border-grid">
@@ -210,7 +175,7 @@ export default function SecurityPage() {
                         <tr className="border-b border-grid bg-grid/30 text-gray-400 uppercase text-xs">
                             <th className="p-4">Threat</th>
                             <th className="p-4">Probability</th>
-                            <th className="p-4">d4-syn Mitigation</th>
+                            <th className="p-4">Engineering Mitigation</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-grid bg-void/50">
@@ -226,8 +191,8 @@ export default function SecurityPage() {
                             <td className="p-4 text-white font-bold">Price Gouging</td>
                             <td className="p-4 text-heat">High</td>
                             <td className="p-4 text-gray-400">
-                                <strong className="text-idle block mb-1">Slippage Caps</strong>
-                                Client hard-rejects rate changes {">"} 5% mid-stream via the client SDK.
+                                <strong className="text-idle block mb-1">Client-Side Slippage Caps</strong>
+                                SDK enforces strict limits on mid-stream rate changes.
                             </td>
                         </tr>
                          <tr>
