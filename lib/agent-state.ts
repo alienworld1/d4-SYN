@@ -22,6 +22,11 @@ const DEFAULT_STATE: Record<string, AgentState> = {
       price: 0.0001,
       latency: 0,
       lastSettlement: Date.now() - (31 * 24 * 60 * 60 * 1000) // 31 days ago (Dormant)
+    },
+    'quant-agent': {
+      price: 0.002,
+      latency: 50,
+      lastSettlement: Date.now()
     }
 };
 

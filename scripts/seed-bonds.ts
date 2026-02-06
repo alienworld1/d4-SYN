@@ -14,7 +14,8 @@ const ABI = parseAbi([
 const CONFIG = [
   { name: 'fast-finance-agent.eth', amount: '0.05' },
   { name: 'cheap-finance-agent.eth', amount: '0.04' },
-  { name: 'evil-finance-agent.eth', amount: '0.0001' }
+  { name: 'evil-finance-agent.eth', amount: '0.0001' },
+  { name: 'quant-agent.eth', amount: '0.03' }
 ];
 
 async function main() {

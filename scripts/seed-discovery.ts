@@ -73,6 +73,12 @@ async function main() {
     'fast-finance-agent.eth,cheap-finance-agent.eth,evil-finance-agent.eth'
   )
 
+  await setRecord(
+    'd4-registry.eth',
+    'd4.list.quant',
+    'quant-agent.eth'
+  )
+
   // 2. Fast Agent
   const fastAgent = 'fast-finance-agent.eth'
   await setRecord(fastAgent, 'd4.type', 'service')
@@ -92,6 +98,15 @@ async function main() {
   await setRecord(evilAgent, 'd4.bond', BOND_CONTRACT)
   await setRecord(evilAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/evil-finance-agent')
   await setRecord(evilAgent, 'd4.payment', account.address)
+
+  // 4. Quant Agent
+  const quantAgent = 'quant-agent.eth'
+  await setRecord(quantAgent, 'd4.type', 'service')
+  await setRecord(quantAgent, 'd4.cat', 'quant') // Special category
+  await setRecord(quantAgent, 'd4.bond', BOND_CONTRACT)
+  await setRecord(quantAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/quant-agent')
+  await setRecord(quantAgent, 'd4.payment', account.address)
+  await setRecord(quantAgent, 'd4.rate', '0.002')
 
   console.log(`\n🎉 Discovery Seeding Complete!`)
 }
