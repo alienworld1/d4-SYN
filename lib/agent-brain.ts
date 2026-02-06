@@ -7,7 +7,7 @@ import { YellowClient } from './yellow-client';
 // Note: In a real app these typically live in a config/env file
 const REGISTRY_DOMAIN = 'd4-registry.eth';
 const BOND_CONTRACT_ADDRESS = '0x31D4BbD8FFB9c77B90F5b679D19C998ACdDC14AF'; 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com'; 
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://1rpc.io/sepolia'; 
 const ENS_REGISTRY_ADDRESS = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'; // Sepolia Registry
 
 // ABI Snippets

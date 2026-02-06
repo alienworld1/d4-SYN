@@ -56,8 +56,15 @@ export function useAgentBrain() {
   const scanRegistry = useCallback(async (category: string = 'finance') => {
       if (!brainRef.current) return [];
       const names = await brainRef.current.searchRegistry(category);
-      // We also trigger inspection for all of them to populate providers state
-      await Promise.all(names.map(name => brainRef.current?.inspectProvider(name)));
+      
+      // Throttle inspection to avoid Rate Limits (Sepolia RPCs are sensitive)
+      // Process in chunks of 2
+      for (let i = 0; i < names.length; i += 2) {
+          const chunk = names.slice(i, i + 2);
+          await Promise.all(chunk.map(name => brainRef.current?.inspectProvider(name)));
+          // Small delay between chunks
+          if (i + 2 < names.length) await new Promise(r => setTimeout(r, 500));
+      }
       return names;
   }, [yellowClient]);
   
