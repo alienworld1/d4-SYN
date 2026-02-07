@@ -742,6 +742,14 @@ export class YellowClient {
     const amount = baseRate * multiplier;
     const isPenalty = multiplier < 1.0;
 
+    // Spec Telemetry
+    this.emitTelemetry('TELEMETRY_UPDATE', {
+        timestamp: Date.now(),
+        latency,
+        payment: amount,
+        isPenalty
+    });
+
     // 5. Telemetry
     if (isPenalty) {
         this.slaStats.penaltyCount++;

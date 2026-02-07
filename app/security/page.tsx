@@ -19,10 +19,10 @@ export default function SecurityPage() {
               <Panel title="NAVIGATION" className="border-idle/30">
                 <nav className="flex flex-col text-sm p-4 space-y-2 font-mono">
                   <a href="#core-problem" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">1. The Core Problem</a>
-                  <a href="#game-theory" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">2. Game Theory</a>
-                  <a href="#digital-real-estate" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">3. Digital Real Estate</a>
-                  <a href="#quality-of-service" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">4. Quality of Service</a>
-                   <a href="#threat-model" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">5. Threat Model</a>
+                  <a href="#game-theory" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">2. Making Malice Expensive</a>
+                  <a href="#digital-real-estate" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">3. Identity as an Asset</a>
+                  <a href="#quality-of-service" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">4. The Customer is Oracle</a>
+                   <a href="#threat-model" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">5. Threat Model Analysis</a>
                 </nav>
               </Panel>
               
@@ -95,6 +95,14 @@ export default function SecurityPage() {
                 <p>
                   The moment a provider attempts to exit (to run away with funds), the protocol enforces a 'Lame Duck' period. Agents immediately detect the exit signal and stop streaming payments. The attacker burns their reputation for zero profit.
                 </p>
+
+                <div className="mt-8 space-y-4">
+                     <h3 className="text-xl text-white font-bold font-mono border-b border-grid pb-2">Mechanic A: Activity Decay</h3>
+                     <p className="text-gray-300 font-sans text-justify">
+                        To prevent "Bond Parking" (where an attacker stakes $10k and goes dormant to build a fake history), we use an <strong>Activity Decay</strong> function. If a node has no certified settlements for 24 hours, its Trust Score receives a <span className="text-heat font-mono">0.5x Penalty</span>. Trust is "Use-it-or-Lose-it".
+                     </p>
+                </div>
+
               </div>
 
                {/* Unbonding Diagram */}
@@ -156,8 +164,13 @@ export default function SecurityPage() {
                 <p className="mb-4">
                   We rely on <strong>Local Consensus</strong>. If an Agent perceives that a provider is slow, it automatically reduces the payment rate via the Yellow State Channel.
                 </p>
-                <p>
+                <p className="mb-8">
                    The Provider accepts this 'penalty' because earning a reduced rate on idle capacity is better than earning nothing. This aligns the incentives of the Buyer (speed) and the Seller (utilization) without needing a central arbitrator.
+                </p>
+
+                <h3 className="text-xl text-white font-bold font-mono border-b border-grid pb-2 mb-4">Micro-SLA Enforcement</h3>
+                <p className="mb-4">
+                   We adhere to the philosophy of "Pay-for-Performance, not Pay-for-Promise." Agents calculate latency per-token. If a provider lags by 50ms, the payment stream is throttled by 10% in real-time.
                 </p>
               </div>
             </section>
