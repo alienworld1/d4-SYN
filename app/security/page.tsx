@@ -22,7 +22,8 @@ export default function SecurityPage() {
                   <a href="#game-theory" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">2. Making Malice Expensive</a>
                   <a href="#digital-real-estate" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">3. Identity as an Asset</a>
                   <a href="#quality-of-service" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">4. The Customer is Oracle</a>
-                   <a href="#threat-model" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">5. Threat Model Analysis</a>
+                  <a href="#economic-defense" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">5. The Economic Defense</a>
+                   <a href="#threat-model" className="hover:text-idle transition-colors border-l-2 border-transparent hover:border-idle pl-2">6. Threat Model Analysis</a>
                 </nav>
               </Panel>
               
@@ -175,11 +176,85 @@ export default function SecurityPage() {
               </div>
             </section>
 
+             {/* Section E: The Economic Defense */}
+            <section id="economic-defense" className="space-y-6">
+              <h2 className="text-3xl font-sans font-bold uppercase text-white flex items-center gap-3">
+                <Lock className="text-idle w-8 h-8" />
+                5. The Economic Defense
+              </h2>
+              
+              <div className="space-y-8">
+                  {/* 1. Economic Rationality */}
+                  <Panel title="A. ECONOMIC RATIONALITY" className="p-6 bg-black/40 border-grid">
+                      <div className="space-y-4">
+                          <div>
+                              <strong className="text-white block font-mono text-sm mb-1">Provider Incentive: Monetizing Idle Capacity</strong>
+                              <p className="text-gray-400 text-sm font-sans text-justify">
+                                  AI hardware has high fixed costs (CAPEX). Earning a penalized rate (e.g., $0.002) on idle cycles is mathematically better than earning $0.000. 
+                                  d4-syn acts as the <span className="text-idle">Spot Market</span> for this clearance inventory, ensuring liquidity even for lower-tier providers.
+                              </p>
+                          </div>
+                          <div>
+                              <strong className="text-white block font-mono text-sm mb-1">Agent Incentive: Code vs. Law</strong>
+                              <p className="text-gray-400 text-sm font-sans text-justify">
+                                  Autonomous Agents cannot sign legal SLAs. They need <span className="text-idle">Mathematical SLAs</span>. 
+                                  State channels allow them to enforce performance penalties in real-time without a lawyer, effectively protecting them from under-delivery.
+                              </p>
+                          </div>
+                      </div>
+                  </Panel>
+
+                  {/* 2. The Churn Tax */}
+                  <Panel title="B. THE CHURN TAX (SYBIL DEFENSE)" className="p-6 bg-black/40 border-grid">
+                      <div className="space-y-4">
+                          <p className="text-gray-400 text-sm font-sans text-justify">
+                              An attacker might try to lie about latency to pay 20% less, get banned, then spin up a new identity to repeat. 
+                              We defeat this with the <strong>Setup Inequality</strong>:
+                          </p>
+                          
+                          <div className="border border-grid bg-void p-4 font-mono text-center my-4">
+                              <span className="text-heat">Setup Cost (Gas + Time)</span> 
+                              <span className="mx-2 text-gray-500">{'>'}</span> 
+                              <span className="text-idle">Scam Profit</span>
+                          </div>
+
+                          <p className="text-gray-400 text-sm font-sans text-justify">
+                              It costs ~$0.50 in gas and time to fund a new wallet and open a channel. A cheater saves only ~$0.10 on 
+                              micro-transactions before hitting the 'Probation Ban'. The attack is mathematically unprofitable.
+                          </p>
+                      </div>
+                  </Panel>
+
+                  {/* 3. Priority Queuing */}
+                  <Panel title="C. PRIORITY QUEUING (ORACLE SOLUTION)" className="p-6 bg-black/40 border-grid">
+                      <div className="space-y-4">
+                          <p className="text-gray-400 text-sm font-sans text-justify">
+                              Who verifies latency if we don't use Chainlink? We use <strong className="text-white">Tit-for-Tat Routing</strong>.
+                          </p>
+                          <ul className="list-disc pl-5 space-y-2 text-sm font-sans text-gray-400">
+                              <li>
+                                  Providers prioritize traffic based on <span className="text-idle">Realized Yield</span>.
+                              </li>
+                              <li>
+                                  Agents who pay full price get the "Fast Lane."
+                              </li>
+                              <li>
+                                  Agents who claim lag (and pay less) get moved to the "Slow Lane."
+                              </li>
+                          </ul>
+                          <p className="text-gray-400 text-sm font-sans text-justify border-l-2 border-idle pl-4 mt-2">
+                              If an Agent lies about lag to save money, they degrade their own service quality. <span className="text-idle">Honesty buys speed.</span>
+                          </p>
+                      </div>
+                  </Panel>
+              </div>
+            </section>
+
              {/* Section: Threat Model (retained but compacted) */}
             <section id="threat-model" className="space-y-8 pb-20">
                <h2 className="text-3xl font-sans font-bold uppercase text-white flex items-center gap-3">
                 <ShieldCheck className="text-idle w-8 h-8" />
-                5. Threat Model Analysis
+                6. Threat Model Analysis
               </h2>
               
               <div className="overflow-x-auto border border-grid">
