@@ -20,7 +20,7 @@ export function TerminalLogs({ logs }: TerminalLogsProps) {
             let typeColor = 'text-cold';
             if (log.type === 'ARB') typeColor = 'text-heat font-bold animate-glitch';
             if (log.type === 'YEL') typeColor = 'text-idle';
-            if (log.type === 'ENS' || log.type === 'DISCOVERY') typeColor = 'text-data';
+            if (log.type === 'ENS') typeColor = 'text-data';
             if (log.type === 'THOUGHT') typeColor = 'text-data italic opacity-80'; // Cyan, distinct
             if (log.type === 'OP') typeColor = 'text-warn font-bold underline decoration-dotted'; // Amber
             if (log.type === 'DATA') typeColor = 'text-idle'; // Green

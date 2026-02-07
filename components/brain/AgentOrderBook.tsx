@@ -69,7 +69,7 @@ export function AgentOrderBook({ providers, activeProvider }: AgentOrderBookProp
                                      <span className="text-[9px] opacity-50">SCORE</span>
                                  </div>
                                  <div className="font-mono text-[10px]">
-                                     ${p.lastKnownPrice.toFixed(4)}
+                                    ${(p.lastKnownPrice ?? 0).toFixed(4)}
                                  </div>
                              </div>
                          </div>
