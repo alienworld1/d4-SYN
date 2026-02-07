@@ -6,6 +6,9 @@ export interface TelemetryPoint {
   latency: number;
   payment: number;
   isPenalty: boolean;
+  nonce?: number;
+  signature?: string;
+  status?: 'OK' | 'WARN' | 'CRITICAL';
 }
 
 export function useTelemetry(bufferSize = 50) {
@@ -17,7 +20,10 @@ export function useTelemetry(bufferSize = 50) {
       timestamp: 0,
       latency: 0, 
       payment: 0,
-      isPenalty: false
+      isPenalty: false,
+      nonce: 0,
+      signature: '0x...',
+      status: 'OK'
   }));
 
   // FPS Throttle state

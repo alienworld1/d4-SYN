@@ -7,6 +7,7 @@ import { BrainConsole } from "@/components/brain/BrainConsole";
 import { AgentOrderBook } from "@/components/brain/AgentOrderBook";
 import { TerminalLogs } from "@/components/brain/TerminalLogs";
 import { SLAChart } from "@/components/brain/SLAChart";
+import { AuditLog } from "@/components/brain/AuditLog";
 // import { useAgentBrain } from "@/hooks/useAgentBrain";
 import { useCognitiveAgent } from "@/hooks/useCognitiveAgent";
 import { useYellow } from "@/hooks/useYellow";
@@ -103,9 +104,9 @@ function MissionControl() {
                    {/* Bottom: Logs */}
                    <div className="flex-1 flex flex-col p-0 min-h-0 overflow-hidden relative border-b border-grid">
                        <div className="absolute top-0 left-0 w-full h-px bg-grid z-10"></div>
-                       <div className="p-2 text-[10px] opacity-40 uppercase tracking-widest bg-grid/10 pl-4">System Logs</div>
-                       <div className="flex-1 overflow-y-auto px-2 pb-2">
-                           <TerminalLogs logs={logs} />
+                       <div className="p-2 text-[10px] opacity-40 uppercase tracking-widest bg-grid/10 pl-4 border-b border-grid/20">Audit Trail</div>
+                       <div className="flex-1 overflow-hidden relative">
+                           <AuditLog />
                        </div>
                    </div>
 

@@ -688,10 +688,27 @@ export class YellowClient {
         this.send(msg);
         console.log(`[YELLOW] Pay Sent: ${amount} (ReqID: ${txRequestId})`);
         
+        // Extract signature for audit log
+        let signature = '0x' + Array(40).fill('0').join('');
+        try {
+            const parsed = typeof msg === 'string' ? JSON.parse(msg) : msg;
+            if (parsed.sig) signature = parsed.sig;
+        } catch (e) {
+            console.warn('Could not parse signature from msg');
+        }
+
+        return {
+            success: true,
+            nonce: txRequestId,
+            signature,
+            amount
+        };
+        
     } catch (err) {
         console.error('[YELLOW] Pay/Transfer Failed', err);
         // Revert balance on error? 
         // Complex in async stream. For demo, we ignore rollback.
+        return undefined;
     }
   }
 
@@ -703,10 +720,11 @@ export class YellowClient {
     if (this.slaStats.lastChunkTime === 0) {
         this.slaStats.lastChunkTime = now;
         // Pay full amount for first chunk
-        return this.pay(baseRate).then(() => ({ 
+        return this.pay(baseRate).then((res) => ({ 
             signed: true, 
             amountPaid: baseRate, 
-            latency: 0 
+            latency: 0,
+            signature: res?.signature 
         }));
     }
 
@@ -727,6 +745,18 @@ export class YellowClient {
         this.emitTelemetry('SLA_VIOLATION', { 
             chunkId, latency, type: 'HARD_CAP' 
         });
+        
+        // Emit Critical Audit Log
+        this.emitTelemetry('TELEMETRY_UPDATE', {
+            timestamp: Date.now(),
+            latency,
+            payment: 0,
+            isPenalty: true,
+            nonce: 0,
+            signature: '0xVIOLATION',
+            status: 'CRITICAL'
+        });
+
         return { signed: false, error: 'TIMEOUT', latency };
     }
 
@@ -741,14 +771,6 @@ export class YellowClient {
 
     const amount = baseRate * multiplier;
     const isPenalty = multiplier < 1.0;
-
-    // Spec Telemetry
-    this.emitTelemetry('TELEMETRY_UPDATE', {
-        timestamp: Date.now(),
-        latency,
-        payment: amount,
-        isPenalty
-    });
 
     // 5. Telemetry
     if (isPenalty) {
@@ -766,15 +788,25 @@ export class YellowClient {
         console.log(`%c[SLA] PENALTY -${Math.round((1-multiplier)*100)}% (${Math.round(latency)}ms)`, 'color: orange; font-weight: bold');
     }
 
+    let paymentRes: any = { nonce: 0, signature: '0xSKIPPED', success: false };
+
     // 6. Pay
     if (amount > 0) {
-        await this.pay(amount);
+        paymentRes = await this.pay(amount);
     } else {
         console.warn(`[SLA] Payment Skipped (100% Penalty) for Chunk #${chunkId}`);
     }
 
-    // Regular Telemetry for every chunk (optional, but good for dashboard)
-    // this.emitTelemetry('SLA_STATS_UPDATE', this.getTelemetry());
+    // Spec Telemetry - Audit Log
+    this.emitTelemetry('TELEMETRY_UPDATE', {
+        timestamp: Date.now(),
+        latency,
+        payment: amount,
+        isPenalty,
+        nonce: paymentRes?.nonce || 0,
+        signature: paymentRes?.signature || '0xFAILED',
+        status: isPenalty ? (latency > 300 ? 'CRITICAL' : 'WARN') : 'OK'
+    });
 
     return { signed: true, amountPaid: amount, latency };
   }
