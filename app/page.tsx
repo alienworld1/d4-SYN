@@ -101,12 +101,23 @@ function MissionControl() {
                         <YellowMonitor />
                    </div>
                    
-                   {/* Bottom: Logs */}
-                   <div className="flex-1 flex flex-col p-0 min-h-0 overflow-hidden relative border-b border-grid">
-                       <div className="absolute top-0 left-0 w-full h-px bg-grid z-10"></div>
-                       <div className="p-2 text-[10px] opacity-40 uppercase tracking-widest bg-grid/10 pl-4 border-b border-grid/20">Audit Trail</div>
-                       <div className="flex-1 overflow-hidden relative">
-                           <AuditLog />
+                   {/* Bottom: Logs & Audit (Split View) */}
+                   <div className="flex-1 flex flex-col min-h-0 relative border-b border-grid">
+                       {/* Agent Logs */}
+                       <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative border-b border-grid">
+                            <div className="absolute top-0 left-0 w-full h-px bg-grid z-10"></div>
+                            <div className="p-2 text-[10px] opacity-40 uppercase tracking-widest bg-grid/10 pl-4 border-b border-grid/20">Agent Thought Process</div>
+                            <div className="flex-1 overflow-y-auto px-2 pb-2">
+                                <TerminalLogs logs={logs} />
+                            </div>
+                       </div>
+                       
+                       {/* Audit Trail */}
+                       <div className="h-40 flex flex-col overflow-hidden relative bg-black/30">
+                           <div className="p-2 text-[10px] opacity-40 uppercase tracking-widest bg-grid/10 pl-4 border-b border-grid/20">Audit Ledger</div>
+                           <div className="flex-1 overflow-hidden relative">
+                               <AuditLog />
+                           </div>
                        </div>
                    </div>
 

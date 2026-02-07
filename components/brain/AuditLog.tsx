@@ -40,7 +40,7 @@ export function AuditLog() {
               if (log.status === 'CRITICAL') color = "text-heat font-bold";
               
               const nonceDisplay = log.nonce ? `#${log.nonce.toString().padEnd(4)}` : 'INIT';
-              const sigDisplay = log.signature ? `${log.signature.substring(0, 10)}...` : 'PENDING';
+              const sigDisplay = log.signature ? `${String(log.signature).substring(0, 10)}...` : 'PENDING';
               
               return (
                   <div key={i} className={`flex hover:bg-white/5 transition-colors ${color} cursor-default`}>
