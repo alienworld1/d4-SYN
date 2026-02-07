@@ -43,6 +43,25 @@ This incentivizes providers to maintain available capacity or risk instantaneous
 ### Unbonding Period (Rug Pull Defense)
 The `ServiceBond` contract enforces a mandatory unbonding period (configured to 30s for demo, 7 days for production). If a provider initiates an exit, the protocol flags them as a "Lame Duck," and agents automatically disconnect before the capital can be withdrawn.
 
+## Provider Economics
+While d4-syn enforces strict performance penalties, it offers four distinct economic advantages over traditional SaaS models, creating a compelling case for compute providers:
+
+1.  **Monetization of Idle Capacity (The "Electricity Grid" Model)**
+    *   AI inference requires massive fixed capital (H100 GPUs), but demand is volatile. In Web2, excess capacity earns zero revenue.
+    *   d4-syn functions as a spot market for slack capacity. Providers can set aggressive base rates for high-priority traffic while accepting lower, latency-penalized rates for background agent tasks. Earning $0.002 per token on idle hardware is economically superior to earning $0.000.
+
+2.  **Zero-CAC Distribution**
+    *   Customer Acquisition Cost (CAC) for API businesses often exceeds 30% of revenue (sales teams, marketing, Stripe integration).
+    *   d4-syn eliminates this overhead. By bonding capital to an ENS domain, a provider becomes instantly discoverable to the global swarm of autonomous agents. The protocol handles discovery, vetting, and settlement, allowing providers to compete purely on unit economics rather than marketing budgets.
+
+3.  **Reputation as Equity**
+    *   In the current API economy, a provider's reputation is intangible and non-transferable.
+    *   By tying performance history and Trust Score to the ENS Node Hash, d4-syn converts "Quality of Service" into asset value. A provider who maintains 99.9% uptime and <50ms latency builds a verifiable on-chain track record. This increases the resale value of the ENS domain itself, effectively allowing providers to build equity in their digital identity.
+
+4.  **Premium Price Discovery**
+    *   High-performance providers currently suffer from a "Market for Lemons"; they cannot cryptographically prove they are faster than competitors before payment.
+    *   d4-syn provides an irrefutable, on-chain signal of quality. Providers with high Trust Scores and low historical penalty rates can command premium pricing, breaking the "race to the bottom."
+
 ## Architectural Trade-offs
 
 ### Why State Channels vs. L2?
