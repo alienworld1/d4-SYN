@@ -71,9 +71,22 @@ Economic viability depends on transaction density.
 For a single API call, L2 is efficient. For a long-running session generating 500 tokens with individual SLA checks per token, an L2 solution would cost $5.00 and congest the network. A State Channel reduces the marginal cost of the 500th token to near-zero, making high-fidelity monitoring economically feasible.
 
 ### The Oracle Problem
-We intentionally avoid external oracles (Chainlink) for latency verification. The Buyer (Agent) acts as the subjective oracle for its own session.
-*   **Risk**: A malicious Buyer could claim lag to pay less.
-*   **Mitigation**: Providers maintain local logs. If a Buyer consistently underpays relative to server-side metrics, the Provider adds the Buyer to a local blocklist. This creates a balanced "Tit-for-Tat" equilibrium without centralized arbitration.
+We intentionally avoid external oracles (Chainlink) for latency verification. The Buyer (Agent) acts as the subjective oracle for its own session, checking latency per-packet.
+
+**The Risk**
+A malicious Buyer could artificially report high latency to pay a reduced rate (e.g., paying $0.002 instead of $0.005).
+
+**Defense 1: The Churn Tax (Sybil Defense)**
+We enforce the **Setup Inequality**: `Setup Cost > Scam Profit`.
+*   It costs ~$0.50 in gas and time to fund a new wallet and open a State Channel.
+*   A cheater saves only ~$0.10 on micro-transactions before the Provider's local heuristics ban them.
+*   *Conclusion:* Sybil attacks are mathematically unprofitable.
+
+**Defense 2: Priority Queuing (Tit-for-Tat)**
+Providers verify "Honesty" via **Realized Yield**.
+*   Agents paying full price are routed to the "Fast Lane."
+*   Agents claiming lag (and thus paying less) are deprioritized to the "Slow Lane."
+*   If an Agent lies about lag to save money, they degrade their own service quality. **Honesty buys speed.**
 
 ## Evidence Locker
 
