@@ -81,6 +81,9 @@ export class AgentBrain extends EventTarget {
       // 1. Discovery Phase
       await this.discoverProviders();
       
+      // Abort if stopped manually during discovery
+      if (this.status === 'IDLE') return; 
+
       if (this.providers.length === 0) {
         throw new Error('Market Exhausted: No providers found.');
       }
@@ -405,7 +408,10 @@ export class AgentBrain extends EventTarget {
               for (const line of lines) {
                   const cleanLine = line.replace(/^data: /, '').trim();
                   if (cleanLine === '[DONE]') {
-                      continue;
+                      // Stream finished by server signal
+                      this.setStatus('COMPLETED');
+                      this.log('INFO', 'Stream finished successfully.');
+                      return; 
                   }
                   if (!cleanLine) continue;
 
