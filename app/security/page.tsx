@@ -43,7 +43,7 @@ export default function SecurityPage() {
                 <span className="text-idle">Speed of Light</span>
               </h1>
               <p className="text-xl text-gray-400 font-mono border-l-4 border-grid pl-4 py-2">
-                Engineering Whitepaper // Module 10.5
+                Engineering Whitepaper
               </p>
             </header>
 

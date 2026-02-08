@@ -15,7 +15,7 @@ import {
 import { createWalletClient, createPublicClient, http, PrivateKeyAccount as ViemPrivateKeyAccount, hexToBigInt, Account, WalletClient, Transport, Chain, ParseAccount } from 'viem';
 import { privateKeyToAccount, generatePrivateKey } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
-import { YELLOW_RPC_URL, YELLOW_ADDRESSES, MOCK_YELLOW, USDC_SEPOLIA_ADDRESS } from './constants';
+import { YELLOW_RPC_URL, YELLOW_ADDRESSES, USDC_SEPOLIA_ADDRESS } from './constants';
 
 const SLA_CONFIG = {
   SLA_TARGET_MS: 100,
@@ -29,7 +29,7 @@ export type YellowStatus = 'disconnected' | 'connecting' | 'connected' | 'active
 
 export interface YellowState {
   status: YellowStatus;
-  balance: bigint; // In wei units (or whatever the token decimals are)
+  balance: bigint; 
   channelId: string | null;
   provider: string | null;
   address: string | null;
@@ -141,15 +141,6 @@ export class YellowClient {
         console.log('[YELLOW] Init skipped - already connecting or connected');
         return;
     }
-
-    // MOCK MODE Disabled for Real Implementation
-    /*
-    if (MOCK_YELLOW) {
-      console.log('[YELLOW] MOCK MODE ACTIVATED');
-      setTimeout(() => this.setState({ status: 'connected' }), 500);
-      return;
-    }
-    */
 
     this.setState({ status: 'connecting' });
 
@@ -305,14 +296,7 @@ export class YellowClient {
              
              const params = payload[2]; // { challenge: '...' }
              const challengeUUID = params.challenge;
-             
-             // The v0.3.0 contract likely uses the v0.3.0 Policy structure.
-             // Hypothesis 1: 'expires_at' might be 'uint256'
-             // Hypothesis 2: 'scope' vs 'application'
-             
-             // Let's first try exact SDK types but ensure we have full control
-             // Using specs from yellow-authentication.md
-             
+                          
              // "domain": {"name": "<application_name>"}
              const domain = {
                 name: this.currentAuthParams.application

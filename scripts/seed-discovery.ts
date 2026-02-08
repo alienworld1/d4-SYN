@@ -81,32 +81,32 @@ async function main() {
 
   // 2. Fast Agent
   const fastAgent = 'fast-finance-agent.eth'
-  await setRecord(fastAgent, 'd4.type', 'service')
-  await setRecord(fastAgent, 'd4.bond', BOND_CONTRACT)
-  await setRecord(fastAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/fast-finance-agent')
-  await setRecord(fastAgent, 'd4.payment', account.address) // Paying ourselves for demo
+  // await setRecord(fastAgent, 'd4.type', 'service')
+  // await setRecord(fastAgent, 'd4.bond', BOND_CONTRACT)
+  await setRecord(fastAgent, 'd4.endpoint', 'https://d4-syn.vercel.app/api/agent/fast-finance-agent')
+  // await setRecord(fastAgent, 'd4.payment', account.address) // Paying ourselves for demo
 
   // 3. Cheap Agent
   const cheapAgent = 'cheap-finance-agent.eth'
-  await setRecord(cheapAgent, 'd4.type', 'service')
-  await setRecord(cheapAgent, 'd4.bond', BOND_CONTRACT)
-  await setRecord(cheapAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/cheap-finance-agent')
-  await setRecord(cheapAgent, 'd4.payment', account.address)
+  // await setRecord(cheapAgent, 'd4.type', 'service')
+  // await setRecord(cheapAgent, 'd4.bond', BOND_CONTRACT)
+  await setRecord(cheapAgent, 'd4.endpoint', 'https://d4-syn.vercel.app/api/agent/cheap-finance-agent')
+  // await setRecord(cheapAgent, 'd4.payment', account.address)
 
   const evilAgent = 'evil-finance-agent.eth'
-  await setRecord(evilAgent, 'd4.type', 'service')
-  await setRecord(evilAgent, 'd4.bond', BOND_CONTRACT)
-  await setRecord(evilAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/evil-finance-agent')
-  await setRecord(evilAgent, 'd4.payment', account.address)
+  // await setRecord(evilAgent, 'd4.type', 'service')
+  // await setRecord(evilAgent, 'd4.bond', BOND_CONTRACT)
+  await setRecord(evilAgent, 'd4.endpoint', 'https://d4-syn.vercel.app/api/agent/evil-finance-agent')
+  // await setRecord(evilAgent, 'd4.payment', account.address)
 
   // 4. Quant Agent
   const quantAgent = 'quant-agent.eth'
-  await setRecord(quantAgent, 'd4.type', 'service')
-  await setRecord(quantAgent, 'd4.cat', 'quant') // Special category
-  await setRecord(quantAgent, 'd4.bond', BOND_CONTRACT)
-  await setRecord(quantAgent, 'd4.endpoint', 'http://localhost:3000/api/agent/quant-agent')
-  await setRecord(quantAgent, 'd4.payment', account.address)
-  await setRecord(quantAgent, 'd4.rate', '0.002')
+  // await setRecord(quantAgent, 'd4.type', 'service')
+  // await setRecord(quantAgent, 'd4.cat', 'quant') // Special category
+  // await setRecord(quantAgent, 'd4.bond', BOND_CONTRACT)
+  await setRecord(quantAgent, 'd4.endpoint', 'https://d4-syn.vercel.app/api/agent/quant-agent')
+  // await setRecord(quantAgent, 'd4.payment', account.address)
+  // await setRecord(quantAgent, 'd4.rate', '0.002')
 
   console.log(`\n🎉 Discovery Seeding Complete!`)
 }
