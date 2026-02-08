@@ -50,6 +50,9 @@ export class YellowClient {
   private signer: WalletStateSigner;
   private messageSigner: any; // Type is inferred from createECDSAMessageSigner
   private walletClient: WalletClient<Transport, Chain, Account>;
+
+  // Temporary storage for session key rotation
+  private pendingSessionPrivKey: string | null = null; 
   
   private requestId = 0;
   private pendingRequests = new Map<number, { resolve: (data: any) => void; reject: (err: any) => void; }>();
@@ -201,10 +204,12 @@ export class YellowClient {
       // Generate Ephemeral Session Key
       const sessionPrivKey = generatePrivateKey();
       this.sessionAccount = privateKeyToAccount(sessionPrivKey);
+      this.pendingSessionPrivKey = sessionPrivKey;
       
       // Update Message Signer to use Session Key
-      this.messageSigner = createECDSAMessageSigner(sessionPrivKey);
-      console.log(`[YELLOW] Generated New Session Key: ${this.sessionAccount.address}`);
+      // DELAY: Do not update messageSigner yet. Wait for handleAuthChallenge success.
+      // this.messageSigner = createECDSAMessageSigner(sessionPrivKey);
+      console.log(`[YELLOW] Generated New Session Key (Pending): ${this.sessionAccount.address}`);
       
       this.currentAuthParams = {
         address: this.account.address,
@@ -349,6 +354,13 @@ export class YellowClient {
         
         console.log('[YELLOW] Auth Verified by Server');
         
+        // ACTIVATE Pending Session Key now that server has verified it
+        if (this.pendingSessionPrivKey) {
+            this.messageSigner = createECDSAMessageSigner(this.pendingSessionPrivKey as `0x${string}`);
+            this.pendingSessionPrivKey = null; // Clear pending
+            console.log('[YELLOW] Session Key Activated for Signing');
+        }
+
         // Short delay to ensure session propagation on Clearnode
         await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -505,11 +517,11 @@ export class YellowClient {
         }
     }
 
+    let tokenAddress = '0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb'; // Updated Default fallback from logs
+    const chainId = sepolia.id;
+    
     try {
         console.log(`[YELLOW] Discovering Assets...`);
-        
-        let tokenAddress = '0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb'; // Updated Default fallback from logs
-        const chainId = sepolia.id;
         
         // 1. Fetch Assets using get_assets
         try {
@@ -620,8 +632,45 @@ export class YellowClient {
 
         return channelId;
 
-    } catch (err) {
+    } catch (err: any) {
         console.error('[YELLOW] Open Channel Failed', err);
+        
+        // Auto-recover from invalid session/signature/auth issues
+        // Error format can be object {error: "..."} or Error instance
+        const errMsg = err?.error || err?.message || JSON.stringify(err);
+        
+        if (typeof errMsg === 'string' && (errMsg.includes('signature') || errMsg.includes('unauthorized') || errMsg.includes('auth'))) {
+             console.warn('[YELLOW] Detected Session Issue. Retrying with fresh authentication...');
+             
+             // 1. Force state reset
+             this.setState({ status: 'connecting' }); 
+             
+             // 2. Re-Authenticate (Safe due to fixed pendingKey logic)
+             await this.authenticate(); 
+             
+             // 3. Wait for connection (Success triggers status='connected')
+             await this.waitForConnection();
+             
+             // 4. Retry Open Channel Logic (Inline retry with correct signature)
+             // We just re-run the critical part: create_channel
+             console.log(`[YELLOW] Retrying Open Channel (Recovery)...`);
+             
+             // Must match the signature used in the main block above
+             const retryRes: any = await this.request((id) => createCreateChannelMessage(this.messageSigner, {
+                 chain_id: sepolia.id,
+                 token: tokenAddress as `0x${string}`, 
+             }, id));
+             
+             const newChannelId = retryRes?.channel_id;
+             this.setState({ 
+                status: 'active', 
+                channelId: newChannelId,
+                provider: providerAddress,
+                balance: this.internalState.balance > 0n ? this.internalState.balance : BigInt(0) 
+             });
+             return newChannelId;
+        }
+
         throw err;
     }
   }
